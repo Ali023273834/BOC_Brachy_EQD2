@@ -2,7 +2,7 @@
    © 2026 Medical Physicist Ali Eid. All rights reserved.
    Change CACHE_VERSION whenever you upload a new version of any file,
    so installed apps pick up the update. */
-const CACHE_VERSION = 'gyn-eqd2-v1.0.2';
+const CACHE_VERSION = 'gyn-eqd2-v1.1.0';
 const APP_SHELL = [
   './',
   './index.html',

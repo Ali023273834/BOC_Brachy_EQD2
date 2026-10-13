@@ -167,6 +167,31 @@ footer{font-size:.82rem;color:var(--muted);display:flex;flex-direction:column;ga
 footer .formula{font-family:var(--font-mono);color:var(--fg)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:8px 16px;border-radius:999px;font-size:.88rem;font-weight:600}
 
+
+/* patient records */
+.ptbar{display:flex;flex-wrap:wrap;gap:12px 20px;justify-content:space-between;align-items:flex-start}
+.pt-id{display:flex;flex-direction:column;gap:3px;min-width:0}
+.pt-id h2{font-size:1.5rem;overflow-wrap:anywhere}
+.pt-sub{font-size:.85rem;color:var(--muted)}
+.pt-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pt-more{display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--line);padding-top:14px}
+.saved{font-size:.78rem;color:var(--ok)}
+.saved.err{color:var(--crit)}
+.btn.sm{font-size:.8rem;padding:4px 10px}
+.btn.danger{color:var(--crit);border-color:var(--crit)}
+.newpt{display:flex;flex-direction:column;gap:12px;padding:14px;border-radius:12px;background:var(--surface-2)}
+.newpt h3{font-size:1.05rem}
+.note.warn-t{color:var(--warn)}
+.plist tr.active td{background:var(--brachy-tint)}
+.plist td{font-family:var(--font-body)}
+.plist td.empty-row{text-align:left;color:var(--muted);font-weight:400;white-space:normal;padding:16px 10px}
+.tbl th small{display:block;font-size:.66rem;text-transform:none;letter-spacing:0;font-weight:500;margin-top:2px}
+.tbl th.draft,.tbl td.draft{background:var(--brachy-tint)}
+.tbl th.draft{color:var(--brachy)}
+.tbl td.locked{color:var(--fg)}
+.deliver{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;border-top:1px solid var(--line);padding-top:14px}
+#worksheet{display:flex;flex-direction:column;gap:18px}
+#worksheet[hidden]{display:none!important}
 @media (max-width:520px){
   .modes{grid-template-columns:1fr 1fr;gap:8px}
   .mode{padding:12px}
@@ -182,34 +207,89 @@ footer .formula{font-family:var(--font-mono);color:var(--fg)}
   <header>
     <span class="eyebrow">Bahrain Oncology Center · Medical Physics</span>
     <h1>GYN Brachy EQD2</h1>
-    <p class="lede">Cumulative EQD2 and BED for external beam plus vaginal cylinder, intrauterine and interstitial brachytherapy, with the dose left for each organ and a prescription de-escalation estimate for the remaining fractions.</p>
+    <p class="lede">Patient records for cumulative EQD2 and BED across external beam and each brachytherapy session: vaginal cylinder, intrauterine and interstitial. Open the patient, enter today's plan, and see the dose left for each organ and the prescription adjustment.</p>
     <div class="badges">
-      <span class="badge">Version 1.0.2</span>
+      <span class="badge">Version 1.1.0</span>
       <span class="badge">Designed by Medical Physicist Ali Eid</span>
       <span class="badge">Supervised by Dr. Zainab Alhaddad</span>
       <span class="badge">Tested by Medical Physicist Hamad Almannai and the Radiation Oncology team</span>
     </div>
   </header>
 
-  <section class="card patient" aria-label="Patient">
-    <div class="fields">
-      <div class="field"><label for="ptName">Patient name</label><input id="ptName" type="text" autocomplete="off" placeholder="Full name"></div>
-      <div class="field"><label for="ptCpr">CPR number</label><input id="ptCpr" type="text" inputmode="numeric" autocomplete="off" maxlength="9" placeholder="9 digits"></div>
-      <div class="field"><label for="ptDate">Report date</label><input id="ptDate" type="date"></div>
+  <!-- ============ ACTIVE PATIENT ============ -->
+  <section class="card" id="pt-card" aria-label="Active patient">
+    <div class="ptbar">
+      <div class="pt-id">
+        <span class="eyebrow">Patient</span>
+        <h2 id="pt-title">No patient open</h2>
+        <p class="pt-sub mono" id="pt-sub">Create a new patient or open one from the list.</p>
+        <p class="saved" id="pt-saved"></p>
+      </div>
+      <div class="pt-actions">
+        <button class="btn" id="btn-patients" aria-expanded="false">Details</button>
+        <button class="btn" id="btn-new" aria-expanded="false">Patients</button>
+      </div>
     </div>
-    <p class="note" id="pt-note">Patient name and CPR stay on this screen only. They are not saved in the browser and appear only in the exported PDF.</p>
+    <div class="pt-more" id="pt-more" hidden>
+      <div class="fields">
+        <div class="field"><label for="editName">Patient name</label><input id="editName" type="text" autocomplete="off"></div>
+        <div class="field"><label for="editCpr">CPR number</label><input id="editCpr" type="text" inputmode="numeric" autocomplete="off" maxlength="9"></div>
+        <div class="field"><label for="ptDate">Report date</label><input id="ptDate" type="date"></div>
+      </div>
+      <p class="note" id="edit-note"></p>
+      <div class="pt-actions">
+        <button class="btn" id="btn-export-pt">Export patient file</button>
+        <button class="btn danger" id="btn-delete-pt">Delete patient</button>
+      </div>
+    </div>
   </section>
 
+  <!-- ============ PATIENT LIST ============ -->
+  <section class="card" id="pt-panel" hidden>
+    <div class="card-head">
+      <h2>Patients on this device</h2>
+      <p>Records are saved automatically in this browser on this device. Export a patient file to move a record to another computer, and back up regularly: clearing the browser's data deletes the records.</p>
+    </div>
+
+    <form class="newpt" id="new-form" hidden autocomplete="off">
+      <h3>New patient</h3>
+      <div class="fields">
+        <div class="field"><label for="nName">Patient name</label><input id="nName" type="text" placeholder="Full name"></div>
+        <div class="field"><label for="nCpr">CPR number</label><input id="nCpr" type="text" inputmode="numeric" maxlength="9" placeholder="9 digits"></div>
+        <div class="field"><label for="nTech">Technique</label>
+          <select id="nTech"><option value="iu">Intrauterine</option><option value="is">Interstitial</option><option value="cyl">Vaginal cylinder</option></select></div>
+        <div class="field"><label for="nN">Planned fractions</label>
+          <select id="nN"><option>1</option><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select></div>
+        <div class="field"><label for="nRx">Planned Rx / fraction (Gy)</label><input id="nRx" type="number" inputmode="decimal" step="any" value="7"></div>
+      </div>
+      <p class="note" id="new-msg"></p>
+      <div class="pt-actions">
+        <button class="btn primary" type="submit">Create patient</button>
+        <button class="btn" type="button" id="btn-new-cancel">Cancel</button>
+      </div>
+    </form>
+
+    <div class="controls">
+      <div class="field" style="flex:1;min-width:12rem"><label for="pSearch">Search by name or CPR</label><input id="pSearch" type="text" autocomplete="off" placeholder="Type to filter"></div>
+      <div class="pt-actions">
+        <button class="btn primary" id="btn-show-new" type="button">New patient</button>
+        <button class="btn" id="btn-import">Import patient file</button>
+        <button class="btn" id="btn-backup">Back up all patients</button>
+        <input type="file" id="importFile" accept=".json,application/json" hidden>
+      </div>
+    </div>
+    <div class="scroll"><table class="tbl plist" id="plist"></table></div>
+  </section>
+
+  <div id="worksheet">
   <nav class="modes" aria-label="Treatment component">
     <button class="mode" data-view="ebrt" id="btn-ebrt" aria-pressed="false"><span class="k">External beam</span><span class="s" id="sum-ebrt"></span></button>
     <button class="mode" data-view="brachy" id="btn-brachy" aria-pressed="false"><span class="k">Brachytherapy</span><span class="s" id="sum-brachy"></span></button>
   </nav>
 
   <div class="toolbar">
-    <span class="chip" id="example-chip">Example patient · replace with plan values</span>
+    <span class="chip" id="example-chip">Example patient for demonstration · delete it when you no longer need it</span>
     <span class="spacer"></span>
-    <button class="btn" id="btn-example">Load example</button>
-    <button class="btn" id="btn-clear">Clear patient</button>
     <button class="btn" id="btn-copy">Copy summary</button>
     <button class="btn primary" id="btn-pdf">Export PDF report</button>
   </div>
@@ -219,7 +299,7 @@ footer .formula{font-family:var(--font-mono);color:var(--fg)}
     <div class="card">
       <div class="card-head">
         <h2>External beam prescription</h2>
-        <p>Phase 2 is optional (sequential boost). Leave it empty if not used.</p>
+        <p>Enter once per patient; it is kept with the record. Phase 2 is optional (sequential boost). Leave it empty if not used.</p>
       </div>
       <div class="fields">
         <div class="field"><label for="p1D">Phase 1 total dose (Gy)</label><input id="p1D" data-k="ebrt.p1D" type="number" inputmode="decimal" step="any"></div>
@@ -251,7 +331,7 @@ footer .formula{font-family:var(--font-mono);color:var(--fg)}
   <section class="view" id="view-brachy" hidden>
     <div class="card">
       <div class="card-head">
-        <h2>Brachytherapy plan</h2>
+        <h2>Brachytherapy course</h2>
       </div>
       <div class="controls">
         <div class="field"><label>Technique</label>
@@ -271,15 +351,17 @@ footer .formula{font-family:var(--font-mono);color:var(--fg)}
     <div class="card">
       <div class="card-head">
         <h2>Physical dose per fraction</h2>
-        <p>Enter values from each approved plan in Gy. A fraction counts as delivered once any value is entered in its column. The prescription row defaults to the planned Rx.</p>
+        <p>Delivered fractions are locked in the record with their date. Enter today's plan in the highlighted column: every result below updates as you type. When the fraction is treated, mark it as delivered.</p>
       </div>
       <div class="scroll"><table class="tbl" id="fx-table"></table></div>
+      <div class="deliver" id="deliver-bar"></div>
+      <p class="note" id="deliver-msg"></p>
     </div>
 
     <div class="card">
       <div class="card-head">
         <h2>Cumulative EQD2 · EBRT + brachytherapy</h2>
-        <p>Bold figure is the running total after each fraction; the small figure is that fraction's own EQD2.</p>
+        <p>Bold figure is the running total after each fraction; the small figure is that fraction's own EQD2. Status uses the total including today's plan.</p>
       </div>
       <div class="scroll"><table class="tbl" id="cum-table"></table></div>
     </div>
@@ -287,15 +369,15 @@ footer .formula{font-family:var(--font-mono);color:var(--fg)}
     <div class="card">
       <div class="card-head">
         <h2>Dose left for the remaining fractions</h2>
-        <p id="rem-lede">Maximum equal physical dose per fraction each organ can still receive before reaching its preferred or maximum value. For the target, the minimum dose per fraction still needed to reach the optimal or acceptable value.</p>
+        <p id="rem-lede"></p>
       </div>
       <div class="scroll"><table class="tbl" id="rem-table"></table></div>
     </div>
 
     <div class="card" id="deesc-card">
       <div class="card-head">
-        <h2>Prescription de-escalation estimate</h2>
-        <p>Scales the next plan by the organ-to-prescription ratio seen in the delivered fractions, then finds the highest prescription that keeps every organ within its goal.</p>
+        <h2>Prescription adjustment estimate</h2>
+        <p id="deesc-lede">Scales the plan by each organ's dose-to-prescription ratio, then finds the highest prescription that keeps every organ within its goal, and the lowest that brings the target to its goal.</p>
       </div>
       <div class="controls">
         <div class="field"><label>Keep organs within</label>
@@ -327,6 +409,7 @@ footer .formula{font-family:var(--font-mono);color:var(--fg)}
       <div><button class="btn" id="btn-preset">Restore preset for this technique</button></div>
     </details>
   </section>
+  </div>
 
   <footer>
     <div class="credits">
@@ -335,7 +418,7 @@ footer .formula{font-family:var(--font-mono);color:var(--fg)}
       <span>Tested by <b>Medical Physicist Hamad Almannai</b> and the <b>Radiation Oncology team</b></span>
     </div>
     <span class="formula">BED = n·d·(1 + d / (α/β)) &nbsp;·&nbsp; EQD2 = BED / (1 + 2 / (α/β))</span>
-    <span>Linear-quadratic model with complete repair between fractions; no correction for overall treatment time. EBRT phases are summed separately. The de-escalation estimate assumes the next plan uses the same applicator geometry so organ doses scale in proportion to the prescription; re-optimising the dwell pattern can do better than simple scaling.</span>
+    <span>Linear-quadratic model with complete repair between fractions; no correction for overall treatment time. EBRT phases are summed separately. The prescription estimate assumes organ doses scale in proportion to the prescription with the same applicator geometry; re-optimising the dwell pattern can do better than simple scaling.</span>
     <span>Constraint presets follow EMBRACE II / GEC-ESTRO for intrauterine and interstitial cervix brachytherapy and are editable. Confirm all values against the departmental protocol. Clinical decisions remain with the treating radiation oncologist and medical physicist.</span>
     <span>© 2026 Medical Physicist Ali Eid. All rights reserved.</span>
   </footer>
@@ -345,6 +428,7 @@ footer .formula{font-family:var(--font-mono);color:var(--fg)}
 <script src="jspdf.umd.min.js"></script>
 <script src="jspdf.plugin.autotable.min.js"></script>
 <script>
+const APP_VERSION='1.1.0';
 const ORG=[
   {k:'ctv',t:true},
   {k:'bladder',n:'Bladder D2cc'},
@@ -367,26 +451,83 @@ const AB={ctv:10,bladder:3,rectum:3,sigmoid:3,bowel:3};
 const clone=o=>JSON.parse(JSON.stringify(o));
 const num=v=>typeof v==='number'&&isFinite(v);
 const fmt=(x,d=1)=>num(x)?x.toFixed(d):'—';
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $=id=>document.getElementById(id);
 const orgName=o=>o.t?TECH[S.brachy.tech].target:o.n;
+function localDate(d=new Date()){const x=new Date(d);x.setMinutes(x.getMinutes()-x.getTimezoneOffset());return x.toISOString().slice(0,10)}
+function dateFmt(s){if(!s)return'';const d=new Date(s+'T12:00:00');return isNaN(d)?s:d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}
+function timeFmt(t){const d=new Date(t);return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}
 
 function blankOrg(){const r={};ORG.forEach(o=>r[o.k]={p1:null,p2:null});return r}
-function example(){return{
-  view:'brachy',example:true,
-  ebrt:{p1D:45,p1N:25,p2D:null,p2N:null,org:blankOrg()},
-  brachy:{tech:'iu',N:4,rx:7,fx:[
-    {rx:7,ctv:7.8,bladder:5.2,rectum:3.9,sigmoid:3.6,bowel:2.8},
-    {rx:7,ctv:7.5,bladder:5.9,rectum:4.3,sigmoid:4.0,bowel:3.1},{},{}]},
+function blankState(tech='iu',N=4,rx=null){return{
+  view:'ebrt',
+  ebrt:{p1D:null,p1N:null,p2D:null,p2N:null,org:blankOrg()},
+  brachy:{tech,N,rx,fx:Array.from({length:N},()=>({}))},
   ab:{...AB},cons:clone(PRESET),de:{basis:'aim',mode:'equal',test:null}
 }}
-function blank(){const s=example();s.example=false;s.view=S?S.view:'ebrt';
-  s.ebrt={p1D:null,p1N:null,p2D:null,p2N:null,org:blankOrg()};
-  s.brachy={tech:S?S.brachy.tech:'iu',N:4,rx:null,fx:[{},{},{},{}]};return s}
+function exampleState(){
+  const s=blankState('iu',4,7);s.view='brachy';
+  s.ebrt.p1D=45;s.ebrt.p1N=25;
+  const d=n=>{const x=new Date();x.setDate(x.getDate()-n);return localDate(x)};
+  s.brachy.fx=[
+    {rx:7,ctv:7.8,bladder:5.2,rectum:3.9,sigmoid:3.6,bowel:2.8,status:'delivered',date:d(14)},
+    {rx:7,ctv:7.5,bladder:5.9,rectum:4.3,sigmoid:4.0,bowel:3.1,status:'delivered',date:d(7)},
+    {rx:7,ctv:7.6,bladder:5.7,rectum:4.4,sigmoid:3.8,bowel:3.0},
+    {}];
+  return s;
+}
+function normalize(s){
+  const b=blankState();
+  s=s&&typeof s==='object'?s:b;
+  s.view=s.view==='brachy'?'brachy':'ebrt';
+  s.ebrt=Object.assign(b.ebrt,s.ebrt||{});ORG.forEach(o=>{if(!s.ebrt.org[o.k])s.ebrt.org[o.k]={p1:null,p2:null}});
+  s.brachy=Object.assign(b.brachy,s.brachy||{});
+  if(!TECH[s.brachy.tech])s.brachy.tech='iu';
+  s.brachy.N=Math.min(6,Math.max(1,parseInt(s.brachy.N,10)||4));
+  if(!Array.isArray(s.brachy.fx))s.brachy.fx=[];
+  while(s.brachy.fx.length<s.brachy.N)s.brachy.fx.push({});
+  s.ab=Object.assign({...AB},s.ab||{});
+  s.cons=Object.assign(clone(PRESET),s.cons||{});
+  Object.keys(PRESET).forEach(t=>ORG.forEach(o=>{if(!s.cons[t][o.k])s.cons[t][o.k]=clone(PRESET[t][o.k])}));
+  s.de=Object.assign({basis:'aim',mode:'equal',test:null},s.de||{});
+  return s;
+}
 
-const KEY='gynEqd2.draft.v1';
+/* ---------- patient records on this device ---------- */
+const DBKEY='gynEqd2.patients.v1';
+let DB={patients:{},active:null,seeded:false};
 let S=null;
-try{const raw=localStorage.getItem(KEY);if(raw)S=JSON.parse(raw)}catch(e){}
-if(!S||!S.brachy||!S.ebrt)S=example();
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+let STORAGE_OK=true;
+let LAST_SAVED=null;
+const UI={panel:false,newForm:false,more:false,search:'',reportDate:localDate()};
+function loadDB(){
+  try{const r=localStorage.getItem(DBKEY);if(r){const d=JSON.parse(r);if(d&&d.patients&&typeof d.patients==='object')DB=Object.assign({patients:{},active:null,seeded:true},d)}}
+  catch(e){STORAGE_OK=false}
+}
+function saveDB(){
+  try{localStorage.setItem(DBKEY,JSON.stringify(DB));STORAGE_OK=true;LAST_SAVED=Date.now()}catch(e){STORAGE_OK=false}
+  renderSaved();
+}
+const uid=()=>'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const rec=()=>DB.active&&DB.patients[DB.active]||null;
+const findByCpr=(cpr,exceptId)=>Object.values(DB.patients).find(p=>p.cpr===cpr&&p.id!==exceptId)||null;
+function save(){const r=rec();if(!r||!S)return;r.state=S;r.updated=Date.now();saveDB()}
+function createPatient(name,cpr,tech,N,rx,state,extra={}){
+  const id=uid(),now=Date.now();
+  DB.patients[id]=Object.assign({id,name,cpr,created:now,updated:now,state:state||blankState(tech,N,rx)},extra);
+  return id;
+}
+function openPatient(id,silent){
+  if(!DB.patients[id]){DB.active=null;S=null;}
+  else{DB.active=id;DB.patients[id].state=normalize(DB.patients[id].state);S=DB.patients[id].state}
+  UI.more=false;
+  if(!silent){UI.panel=false;UI.newForm=false;saveDB();renderInputs();window.scrollTo({top:0,behavior:'smooth'})}
+}
+function progress(state){
+  const b=state&&state.brachy;if(!b)return{k:0,N:0,last:null};
+  let k=0;while(k<b.N&&b.fx[k]&&b.fx[k].status==='delivered')k++;
+  return{k,N:b.N,last:k?b.fx[k-1].date:null};
+}
 
 function getPath(p){return p.split('.').reduce((o,k)=>o==null?undefined:o[k],S)}
 function setPath(p,v){const ks=p.split('.');let o=S;for(let i=0;i<ks.length-1;i++){if(o[ks[i]]==null)o[ks[i]]={};o=o[ks[i]]}o[ks[ks.length-1]]=v}
@@ -403,8 +544,10 @@ function compute(){
   const e=S.ebrt,b=S.brachy,N=b.N;
   while(b.fx.length<N)b.fx.push({});
   const fx=b.fx.slice(0,N);
-  const deliv=fx.map(f=>ORG.some(o=>num(f[o.k])));
-  const k=deliv.filter(Boolean).length,m=N-k;
+  let k=0;while(k<N&&fx[k].status==='delivered')k++;
+  const di=k<N?k:-1;
+  const hasDraft=di>=0&&ORG.some(o=>num(fx[di][o.k]));
+  const m=N-k;
   const rows=ORG.map(o=>{
     const ab=num(S.ab[o.k])&&S.ab[o.k]>0?S.ab[o.k]:AB[o.k];
     const c=S.cons[b.tech][o.k]||{aim:null,limit:null};
@@ -414,47 +557,60 @@ function compute(){
     const d2=n2?(num(og.p2)?og.p2:(num(e.p2D)?e.p2D:0)):0;
     const kk=1+2/ab;
     const ebrtBed=(n1?d1*(1+d1/n1/ab):0)+(n2?d2*(1+d2/n2/ab):0);
-    let cumBed=ebrtBed;const per=[],run=[],ratios=[];
-    fx.forEach((f,i)=>{
-      if(deliv[i]&&num(f[o.k])){
-        const d=f[o.k],bb=d*(1+d/ab);cumBed+=bb;per.push(bb/kk);run.push(cumBed/kk);
-        const rx=num(f.rx)?f.rx:b.rx;if(num(rx)&&rx>0)ratios.push(d/rx);
-      }else{per.push(null);run.push(deliv[i]?cumBed/kk:null)}
-    });
-    const r=ratios.length?ratios.reduce((a,x)=>a+x,0)/ratios.length:null;
-    const missing=deliv.some((dv,i)=>dv&&!num(fx[i][o.k]));
-    return{o,ab,c,d1,d2,ebrtBed,ebrtEqd:ebrtBed/kk,per,run,cum:cumBed/kk,cumBed,r,missing};
+    let bed=ebrtBed,missing=false;const per=[],run=[],ratios=[];
+    for(let i=0;i<k;i++){
+      const f=fx[i],d=f[o.k];
+      if(num(d)){const bb=d*(1+d/ab);bed+=bb;per[i]=bb/kk;const rx=num(f.rx)?f.rx:b.rx;if(num(rx)&&rx>0)ratios.push(d/rx)}
+      else{per[i]=null;missing=true}
+      run[i]=bed/kk;
+    }
+    const cumDel=bed/kk,cumDelBed=bed;
+    let today=null,cumPlan=cumDel,cumPlanBed=bed,rToday=null;
+    if(hasDraft){
+      const f=fx[di],d=f[o.k];
+      if(num(d)){today=d;const bb=d*(1+d/ab);cumPlanBed=bed+bb;cumPlan=cumPlanBed/kk;per[di]=bb/kk;run[di]=cumPlan;
+        const rx=num(f.rx)?f.rx:b.rx;if(num(rx)&&rx>0)rToday=d/rx}
+      else{per[di]=null;run[di]=cumDel}
+    }
+    const rAvg=ratios.length?ratios.reduce((a,x)=>a+x,0)/ratios.length:null;
+    const r=rToday!=null?rToday:rAvg,rSrc=rToday!=null?'plan':(rAvg!=null?'avg':null);
+    return{o,ab,c,d1,d2,ebrtBed,ebrtEqd:ebrtBed/kk,per,run,cumDel,cumDelBed,today,cumPlan,cumPlanBed,r,rSrc,missing};
   });
-  return{rows,deliv,k,m,N};
+  return{rows,k,m,N,di,hasDraft};
 }
 
 function deesc(M){
-  const b=S.brachy,rxP=b.rx,{m,k}=M,basis=S.de.basis,mode=S.de.mode;
-  if(k===0)return{state:'nodata'};
+  const b=S.brachy,rxP=b.rx,m=M.m,basis=S.de.basis,mode=S.de.mode;
   if(m<=0)return{state:'done'};
   if(!num(rxP)||rxP<=0)return{state:'norx'};
+  if(!M.rows.some(R=>num(R.r)&&R.r>0))return{state:'nodata'};
   const lims=[];let tgt=null;
   M.rows.forEach(R=>{
     const goal=R.c[basis];
     if(!num(goal)||!num(R.r)||R.r<=0)return;
     const pre=mode==='last'?(m-1)*eqdS(R.r*rxP,R.ab):0;
     const mm=mode==='last'?1:m;
-    const E=goal-R.cum-pre;
+    const E=goal-R.cumDel-pre;
     const d=solveD(E,mm,R.ab);
     if(R.o.t)tgt={R,goal,rxMin:d/R.r,E};
     else lims.push({R,goal,rxMax:d/R.r,exceeded:E<=0});
   });
   lims.sort((a,c)=>a.rxMax-c.rxMax);
   const lim=lims[0]||null,rxMax=lim?lim.rxMax:Infinity;
-  const needDe=rxMax<rxP-1e-9;
-  const rec=needDe?Math.floor(rxMax*10)/10:rxP;
+  let rec=rxP,action='keep';
+  if(rxMax<rxP-1e-9){rec=Math.max(0,Math.floor(rxMax*10)/10);action='down'}
+  else if(tgt&&tgt.rxMin>rxP+1e-9){
+    const up=Math.ceil(tgt.rxMin*10)/10;
+    if(up<=rxMax+1e-9){rec=up;action='up'}
+    else{rec=isFinite(rxMax)?Math.floor(rxMax*10)/10:rxP;action='upcap'}
+  }
   const conflict=!!(tgt&&lim&&tgt.rxMin>rxMax+1e-9);
-  return{state:'ok',lims,lim,tgt,rxMax,needDe,rec,conflict,mode,basis,m,rxP};
+  return{state:'ok',lims,lim,tgt,rxMax,rec,action,conflict,mode,basis,m,rxP};
 }
 function project(R,T,D){
   if(!num(R.r)||!num(T))return null;
-  if(D.mode==='last')return R.cum+(D.m-1)*eqdS(R.r*D.rxP,R.ab)+eqdS(R.r*T,R.ab);
-  return R.cum+D.m*eqdS(R.r*T,R.ab);
+  if(D.mode==='last')return R.cumDel+(D.m-1)*eqdS(R.r*D.rxP,R.ab)+eqdS(R.r*T,R.ab);
+  return R.cumDel+D.m*eqdS(R.r*T,R.ab);
 }
 function status(R,v,final){
   const c=R.c;
@@ -472,37 +628,63 @@ function status(R,v,final){
   return{cls:'ok',txt:'Within preferred'};
 }
 const pill=s=>`<span class="pill ${s.cls}">${s.txt}</span>`;
+function remaining(R,goal,m){
+  if(!num(goal)||m<=0)return null;
+  const E=goal-R.cumDel;
+  return{E,d:R.o.t?(E<=0?0:solveD(E,m,R.ab)):(E<=0?0:solveD(E,m,R.ab)),reached:E<=0};
+}
+function todayCheck(R,m){
+  if(!num(R.today))return null;
+  const a=remaining(R,R.c.aim,m),l=remaining(R,R.c.limit,m);
+  if(R.o.t){
+    if(a&&R.today>=a.d-1e-9)return'ok';
+    if(l&&R.today>=l.d-1e-9)return a?'warn':'ok';
+    return(a||l)?'crit':'na';
+  }
+  if(a&&R.today<=a.d+1e-9)return'ok';
+  if(l&&R.today<=l.d+1e-9)return a?'warn':'ok';
+  return(a||l)?'crit':'na';
+}
 
 /* ---------- inputs ---------- */
 function inp(path,val,ph){return`<input type="number" inputmode="decimal" step="any" data-k="${path}" value="${num(val)?val:''}" placeholder="${ph??''}" aria-label="${path}">`}
 
 function renderInputs(){
+  renderPatient();
+  $('worksheet').hidden=!S;
+  if(!S){save();return}
   const b=S.brachy,e=S.ebrt;
-  // EBRT rows
-  document.getElementById('ebrt-rows').innerHTML=ORG.map(o=>`<tr>
+  while(b.fx.length<b.N)b.fx.push({});
+  const P=progress(S),k=P.k;
+  $('ebrt-rows').innerHTML=ORG.map(o=>`<tr>
     <td>${orgName(o)}</td><td>${S.ab[o.k]}</td>
     <td>${inp(`ebrt.org.${o.k}.p1`,e.org[o.k].p1,num(e.p1D)?e.p1D:'')}</td>
     <td>${inp(`ebrt.org.${o.k}.p2`,e.org[o.k].p2,num(e.p2D)?e.p2D:'')}</td>
     <td id="eb-phys-${o.k}"></td><td id="eb-bed-${o.k}"></td><td class="total" id="eb-eqd-${o.k}"></td></tr>`).join('');
-  // tech seg
   document.querySelectorAll('#tech-seg button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.tech===b.tech));
-  document.getElementById('bN').value=String(b.N);
-  // fx table
-  while(b.fx.length<b.N)b.fx.push({});
+  const sel=$('bN');sel.value=String(b.N);
+  [...sel.options].forEach(op=>op.disabled=parseInt(op.value,10)<Math.max(1,k));
+  // fraction table
   const cols=[...Array(b.N).keys()];
-  let h=`<thead><tr><th>Structure</th>${cols.map(i=>`<th><span class="fxh"><i class="dot" id="dot-${i}"></i>Fx ${i+1}</span></th>`).join('')}</tr></thead><tbody>`;
-  h+=`<tr class="rxrow"><td>Prescribed dose</td>${cols.map(i=>`<td>${inp(`brachy.fx.${i}.rx`,b.fx[i].rx,num(b.rx)?b.rx:'')}</td>`).join('')}</tr>`;
-  h+=ORG.map(o=>`<tr><td>${orgName(o)}</td>${cols.map(i=>`<td>${inp(`brachy.fx.${i}.${o.k}`,b.fx[i][o.k],'')}</td>`).join('')}</tr>`).join('');
-  document.getElementById('fx-table').innerHTML=h+'</tbody>';
+  const cls=i=>i<k?'locked':(i===k?'draft':'later');
+  let h=`<thead><tr><th>Structure</th>${cols.map(i=>`<th class="${cls(i)}">Fx ${i+1}<small>${i<k?esc(dateFmt(b.fx[i].date))||'Delivered':(i===k?"Today's plan":'Planned')}</small></th>`).join('')}</tr></thead><tbody>`;
+  const cell=(i,key,ph)=>{
+    const v=b.fx[i][key];
+    if(i<k)return`<td class="locked">${num(v)?v.toFixed(2):(key==='rx'&&num(b.rx)?b.rx.toFixed(2):'—')}</td>`;
+    if(i===k)return`<td class="draft">${inp(`brachy.fx.${i}.${key}`,v,ph)}</td>`;
+    return`<td class="later muted">—</td>`;
+  };
+  h+=`<tr class="rxrow"><td>Prescribed dose</td>${cols.map(i=>cell(i,'rx',num(b.rx)?b.rx:'')).join('')}</tr>`;
+  h+=ORG.map(o=>`<tr><td>${orgName(o)}</td>${cols.map(i=>cell(i,o.k,'')).join('')}</tr>`).join('');
+  $('fx-table').innerHTML=h+'</tbody>';
+  renderDeliverBar(k,b.N);
   // constraints
   const cs=S.cons[b.tech];
-  document.getElementById('cons-note').textContent=`Preset: ${TECH[b.tech].n}. For the target the values are lower bounds (Optimal / Acceptable). For organs they are upper bounds (Preferred / Maximum). Leave a cell empty to skip that check.`;
-  document.getElementById('cons-table').innerHTML=`<thead><tr><th>Structure</th><th>α/β (Gy)</th><th>Optimal / Preferred (Gy EQD2)</th><th>Acceptable / Maximum (Gy EQD2)</th></tr></thead><tbody>`+
+  $('cons-note').textContent=`Preset: ${TECH[b.tech].n}. For the target the values are lower bounds (Optimal / Acceptable). For organs they are upper bounds (Preferred / Maximum). Leave a cell empty to skip that check. Changes are saved with this patient.`;
+  $('cons-table').innerHTML=`<thead><tr><th>Structure</th><th>α/β (Gy)</th><th>Optimal / Preferred (Gy EQD2)</th><th>Acceptable / Maximum (Gy EQD2)</th></tr></thead><tbody>`+
     ORG.map(o=>`<tr><td>${orgName(o)}</td><td>${inp(`ab.${o.k}`,S.ab[o.k])}</td><td>${o.t?'≥ ':'&lt; '}${inp(`cons.${b.tech}.${o.k}.aim`,cs[o.k].aim)}</td><td>${o.t?'≥ ':'&lt; '}${inp(`cons.${b.tech}.${o.k}.limit`,cs[o.k].limit)}</td></tr>`).join('')+'</tbody>';
-  // static inputs
   document.querySelectorAll('.view input[data-k]').forEach(el=>{
-    if(el.closest('table'))return;
-    if(el.id==='testRx')return;
+    if(el.closest('table')||el.id==='testRx')return;
     const v=getPath(el.dataset.k);el.value=num(v)?v:'';
   });
   document.querySelectorAll('#basis-seg button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.basis===S.de.basis));
@@ -510,180 +692,277 @@ function renderInputs(){
   renderOutputs();
 }
 
+const ARM={};
+function arm(key,btn,label,armedLabel){
+  if(ARM[key]){clearTimeout(ARM[key]);delete ARM[key];btn.textContent=label;return true}
+  btn.textContent=armedLabel;
+  ARM[key]=setTimeout(()=>{delete ARM[key];btn.textContent=label},4000);
+  return false;
+}
+function renderDeliverBar(k,N){
+  const bar=$('deliver-bar');$('deliver-msg').textContent='';$('deliver-msg').className='note';
+  let h='';
+  if(k<N){
+    h+=`<div class="field" style="width:11rem"><label for="fxDate">Treatment date</label><input type="date" id="fxDate" value="${localDate()}"></div>`;
+    h+=`<button class="btn primary" id="btn-deliver">Mark Fx ${k+1} as delivered</button>`;
+  }else{
+    h+=`<span class="pill ok">All ${N} fractions delivered</span>`;
+  }
+  if(k>0)h+=`<button class="btn" id="btn-undo">Reopen Fx ${k}</button>`;
+  bar.innerHTML=h;
+  const bd=$('btn-deliver');if(bd)bd.addEventListener('click',()=>deliver(bd));
+  const bu=$('btn-undo');if(bu)bu.addEventListener('click',()=>undoDeliver(bu));
+}
+function deliver(btn){
+  const P=progress(S),k=P.k,f=S.brachy.fx[k],msg=$('deliver-msg');
+  const tgt=ORG.find(o=>o.t);
+  if(!num(f.rx)&&!num(S.brachy.rx)){msg.textContent='Enter the prescribed dose for this fraction.';msg.className='note err';return}
+  if(!num(f[tgt.k])){msg.textContent=`Enter ${orgName(tgt)} for Fx ${k+1} before marking it delivered.`;msg.className='note err';return}
+  const empty=ORG.filter(o=>!o.t&&!num(f[o.k])).map(orgName);
+  if(empty.length&&!ARM.deliver){
+    msg.textContent=`${empty.join(', ')} ${empty.length>1?'are':'is'} empty and will be counted as 0 Gy. Tap the button again to confirm.`;msg.className='note warn-t';
+    arm('deliver',btn,btn.textContent,`Confirm Fx ${k+1} delivered`);return;
+  }
+  if(ARM.deliver){clearTimeout(ARM.deliver);delete ARM.deliver}
+  if(!num(f.rx))f.rx=S.brachy.rx;
+  f.status='delivered';f.date=($('fxDate')&&$('fxDate').value)||localDate();
+  S.de.test=null;
+  renderInputs();toast(`Fx ${k+1} saved as delivered`);
+}
+function undoDeliver(btn){
+  const k=progress(S).k;if(k<1)return;
+  if(!arm('undo',btn,`Reopen Fx ${k}`,`Tap again to reopen Fx ${k}`)){
+    const nx=S.brachy.fx[k];
+    $('deliver-msg').textContent=`Fx ${k} will become editable again${nx&&ORG.some(o=>num(nx[o.k]))?` and the values entered for Fx ${k+1} will be cleared`:''}.`;$('deliver-msg').className='note warn-t';
+    return;
+  }
+  if(S.brachy.fx[k])S.brachy.fx[k]={};
+  delete S.brachy.fx[k-1].status;delete S.brachy.fx[k-1].date;
+  renderInputs();toast(`Fx ${k} reopened for editing`);
+}
+
+/* ---------- patient bar & list ---------- */
+function renderSaved(){
+  const el=$('pt-saved');if(!el)return;
+  if(!rec()){el.textContent='';return}
+  if(!STORAGE_OK){el.textContent='Not saved: this browser is blocking storage. Export the patient file to keep the data.';el.className='saved err';return}
+  el.textContent=LAST_SAVED?`Saved on this device · ${timeFmt(LAST_SAVED)}`:'Saved on this device';el.className='saved';
+}
+function renderPatient(){
+  const r=rec();
+  $('pt-title').textContent=r?r.name:'No patient open';
+  if(r){
+    const P=progress(r.state);
+    $('pt-sub').textContent=`CPR ${r.cpr} · ${TECH[r.state.brachy.tech].n} · ${P.k} of ${P.N} fractions delivered${P.last?` · last ${dateFmt(P.last)}`:''}`;
+  }else $('pt-sub').textContent='Create a new patient or open one from the list.';
+  renderSaved();
+  $('pt-more').hidden=!r||!UI.more;
+  $('btn-patients').hidden=!r;
+  $('btn-patients').textContent=UI.more?'Hide details':'Details';
+  $('btn-patients').setAttribute('aria-expanded',UI.more);
+  $('btn-new').hidden=!r;
+  $('btn-new').textContent=UI.panel?'Hide patient list':'Patients';
+  $('btn-new').setAttribute('aria-expanded',UI.panel);
+  if(r&&document.activeElement!==$('editName'))$('editName').value=r.name;
+  if(r&&document.activeElement!==$('editCpr'))$('editCpr').value=r.cpr;
+  $('ptDate').value=UI.reportDate;
+  $('pt-panel').hidden=!(UI.panel||!r);
+  $('new-form').hidden=!(UI.newForm||(!r&&Object.keys(DB.patients).length===0));
+  $('example-chip').hidden=!(r&&r.example);
+  renderList();
+}
+function renderList(){
+  const q=UI.search.trim().toLowerCase();
+  const list=Object.values(DB.patients).sort((a,b)=>(b.updated||0)-(a.updated||0))
+    .filter(p=>!q||p.name.toLowerCase().includes(q)||p.cpr.includes(q));
+  const t=$('plist');
+  if(!Object.keys(DB.patients).length){t.innerHTML=`<tbody><tr><td class="empty-row">No patients saved on this device yet. Create one above or import a patient file.</td></tr></tbody>`;return}
+  if(!list.length){t.innerHTML=`<tbody><tr><td class="empty-row">No patient matches “${esc(UI.search)}”.</td></tr></tbody>`;return}
+  t.innerHTML=`<thead><tr><th>Name</th><th>CPR</th><th>Technique</th><th>Delivered</th><th>Last fraction</th><th>Updated</th><th></th></tr></thead><tbody>`+
+    list.map(p=>{const P=progress(p.state);const tech=TECH[(p.state&&p.state.brachy&&p.state.brachy.tech)||'iu'];
+      return`<tr class="${p.id===DB.active?'active':''}"><td>${esc(p.name)}${p.example?' <span class="tag">example</span>':''}</td><td>${esc(p.cpr)}</td><td>${tech?tech.n:'—'}</td><td>${P.k} / ${P.N}</td><td>${P.last?dateFmt(P.last):'—'}</td><td>${timeFmt(p.updated||p.created)}</td>
+      <td><button class="btn sm" data-open="${p.id}">${p.id===DB.active?'Open now':'Open'}</button></td></tr>`}).join('')+'</tbody>';
+}
+
 /* ---------- outputs ---------- */
 let LAST={};
 function renderOutputs(){
+  if(!S)return;
   const e=S.ebrt,b=S.brachy,M=compute(),D=deesc(M);
   LAST={M,D};
-  // view toggles
-  ['ebrt','brachy'].forEach(v=>{
-    document.getElementById('view-'+v).hidden=S.view!==v;
-    document.getElementById('btn-'+v).setAttribute('aria-pressed',S.view===v);
-  });
-  document.getElementById('example-chip').hidden=!S.example;
-  // summaries
+  ['ebrt','brachy'].forEach(v=>{$('view-'+v).hidden=S.view!==v;$('btn-'+v).setAttribute('aria-pressed',S.view===v)});
   const p1=num(e.p1D)&&num(e.p1N)&&e.p1N>0?`${e.p1D} Gy / ${e.p1N} fx`:'Not entered';
   const p2=num(e.p2D)&&num(e.p2N)&&e.p2N>0?` + ${e.p2D} Gy / ${e.p2N} fx`:'';
-  document.getElementById('sum-ebrt').textContent=p1+p2;
-  document.getElementById('sum-brachy').textContent=`${TECH[b.tech].n} · ${M.k} of ${b.N} fx entered`;
-  document.getElementById('p1dpf').textContent=num(e.p1D)&&num(e.p1N)&&e.p1N>0?fmt(e.p1D/e.p1N,2)+' Gy':'—';
-  document.getElementById('p2dpf').textContent=num(e.p2D)&&num(e.p2N)&&e.p2N>0?fmt(e.p2D/e.p2N,2)+' Gy':'—';
-  // EBRT outputs + placeholders
+  $('sum-ebrt').textContent=p1+p2;
+  $('sum-brachy').textContent=`${TECH[b.tech].n} · ${M.k} of ${b.N} delivered${M.hasDraft?` · Fx ${M.di+1} plan entered`:''}`;
+  $('p1dpf').textContent=num(e.p1D)&&num(e.p1N)&&e.p1N>0?fmt(e.p1D/e.p1N,2)+' Gy':'—';
+  $('p2dpf').textContent=num(e.p2D)&&num(e.p2N)&&e.p2N>0?fmt(e.p2D/e.p2N,2)+' Gy':'—';
   M.rows.forEach(R=>{
     const k=R.o.k;
-    document.getElementById('eb-phys-'+k).textContent=fmt(R.d1+R.d2,1);
-    document.getElementById('eb-bed-'+k).textContent=fmt(R.ebrtBed,1);
-    document.getElementById('eb-eqd-'+k).textContent=fmt(R.ebrtEqd,1);
+    $('eb-phys-'+k).textContent=fmt(R.d1+R.d2,1);$('eb-bed-'+k).textContent=fmt(R.ebrtBed,1);$('eb-eqd-'+k).textContent=fmt(R.ebrtEqd,1);
     const i1=document.querySelector(`[data-k="ebrt.org.${k}.p1"]`),i2=document.querySelector(`[data-k="ebrt.org.${k}.p2"]`);
     if(i1)i1.placeholder=num(e.p1D)?e.p1D:'';if(i2)i2.placeholder=num(e.p2D)?e.p2D:'';
   });
-  document.querySelectorAll('[data-k$=".rx"]').forEach(el=>{if(el.dataset.k.startsWith('brachy.fx'))el.placeholder=num(b.rx)?b.rx:''});
-  M.deliv.forEach((dv,i)=>{const d=document.getElementById('dot-'+i);if(d)d.classList.toggle('on',dv)});
+  document.querySelectorAll('[data-k^="brachy.fx"][data-k$=".rx"]').forEach(el=>el.placeholder=num(b.rx)?b.rx:'');
 
-  // cumulative table
-  const cols=[...Array(b.N).keys()];
-  let h=`<thead><tr><th>Structure</th><th>EBRT</th>${cols.map(i=>`<th>+ Fx ${i+1}</th>`).join('')}<th>Total EQD2</th><th>Total BED</th><th>Optimal / Preferred</th><th>Acceptable / Maximum</th><th>Status</th></tr></thead><tbody>`;
-  h+=M.rows.map(R=>{
-    const c=R.c,final=M.m===0;
+  // cumulative
+  const shown=[...Array(M.k+(M.hasDraft?1:0)).keys()];
+  const final=M.k+(M.hasDraft?1:0)===M.N;
+  let h=`<thead><tr><th>Structure</th><th>EBRT</th>${shown.map(i=>`<th class="${i===M.di?'draft':''}">+ Fx ${i+1}${i===M.di?'<small>plan</small>':''}</th>`).join('')}<th>Delivered EQD2</th>${M.hasDraft?'<th class="draft">With today\'s plan</th>':''}<th>Total BED</th><th>Optimal / Preferred</th><th>Acceptable / Maximum</th><th>Status</th></tr></thead><tbody>`;
+  h+=M.rows.map(R=>{const c=R.c,tot=M.hasDraft?R.cumPlan:R.cumDel;
     return`<tr><td>${orgName(R.o)}${R.missing?' <span class="tag">value missing</span>':''}</td><td>${fmt(R.ebrtEqd)}</td>`+
-      cols.map(i=>M.deliv[i]?`<td class="cumcell"><b>${fmt(R.run[i])}</b><small>${R.per[i]==null?'no value':'+'+fmt(R.per[i])}</small></td>`:`<td class="muted">—</td>`).join('')+
-      `<td class="total">${fmt(R.cum)}</td><td>${fmt(R.cumBed)}</td><td>${num(c.aim)?(R.o.t?'≥':'<')+c.aim:'—'}</td><td>${num(c.limit)?(R.o.t?'≥':'<')+c.limit:'—'}</td><td>${pill(status(R,R.cum,final))}</td></tr>`;
+      shown.map(i=>`<td class="cumcell ${i===M.di?'draft':''}"><b>${fmt(R.run[i])}</b><small>${R.per[i]==null?'no value':'+'+fmt(R.per[i])}</small></td>`).join('')+
+      `<td class="${M.hasDraft?'':'total'}">${fmt(R.cumDel)}</td>${M.hasDraft?`<td class="total draft">${fmt(R.cumPlan)}</td>`:''}<td>${fmt(M.hasDraft?R.cumPlanBed:R.cumDelBed)}</td><td>${num(c.aim)?(R.o.t?'≥':'<')+c.aim:'—'}</td><td>${num(c.limit)?(R.o.t?'≥':'<')+c.limit:'—'}</td><td>${pill(status(R,tot,final))}</td></tr>`;
   }).join('');
-  document.getElementById('cum-table').innerHTML=h+'</tbody>';
+  $('cum-table').innerHTML=h+'</tbody>';
 
-  // remaining table
+  // remaining
   const m=M.m;
-  document.getElementById('rem-lede').textContent=m>0
-    ?`${m} fraction${m>1?'s':''} remaining. Maximum equal physical dose per fraction each organ can still receive before reaching its preferred or maximum value. For the target, the minimum dose per fraction still needed to reach the optimal or acceptable value.`
-    :'All planned fractions are entered. No further dose is planned.';
-  h=`<thead><tr><th rowspan="2">Structure</th><th rowspan="2">Cumulative</th><th class="grp" colspan="3">To optimal / preferred</th><th class="grp" colspan="3">To acceptable / maximum</th></tr>
-     <tr><th>EQD2 left</th><th>Gy / fx</th><th>Total Gy</th><th>EQD2 left</th><th>Gy / fx</th><th>Total Gy</th></tr></thead><tbody>`;
+  $('rem-lede').textContent=m>0
+    ?`${m} fraction${m>1?'s':''} left${M.di>=0?`, including Fx ${M.di+1} (today's plan)`:''}. Maximum physical dose per fraction each organ can still receive, if the remaining dose is split equally, before reaching its preferred or maximum value. For the target, the minimum dose per fraction still needed. Today's plan is checked against these values.`
+    :'All planned fractions are delivered. No further dose is planned.';
+  h=`<thead><tr><th rowspan="2">Structure</th><th rowspan="2">Delivered EQD2</th>${M.di>=0?'<th rowspan="2" class="draft">Today\'s plan (Gy)</th>':''}<th class="grp" colspan="2">To optimal / preferred</th><th class="grp" colspan="2">To acceptable / maximum</th></tr>
+     <tr><th>EQD2 left</th><th>Gy / fx</th><th>EQD2 left</th><th>Gy / fx</th></tr></thead><tbody>`;
   h+=M.rows.map(R=>{
     const cell=goal=>{
-      if(!num(goal))return'<td class="muted">—</td><td class="muted">—</td><td class="muted">—</td>';
-      const E=goal-R.cum;
-      if(R.o.t){
-        if(E<=0)return`<td>0.0</td><td colspan="2"><span class="pill ok">Reached</span></td>`;
-        const d=solveD(E,m,R.ab);
-        return`<td>${fmt(E)}<span class="tag">needed</span></td><td>${m>0?fmt(d,2):'—'}<span class="tag">min</span></td><td>${m>0?fmt(d*m,1):'—'}</td>`;
-      }
-      if(E<=0)return`<td>${fmt(E)}</td><td colspan="2"><span class="pill crit">Already reached</span></td>`;
-      const d=solveD(E,m,R.ab);
-      return`<td>${fmt(E)}</td><td class="total">${m>0?fmt(d,2):'—'}</td><td>${m>0?fmt(d*m,1):'—'}</td>`;
+      const x=remaining(R,goal,m);
+      if(!x)return'<td class="muted">—</td><td class="muted">—</td>';
+      if(R.o.t)return x.reached?`<td>0.0</td><td><span class="pill ok">Reached</span></td>`:`<td>${fmt(x.E)}<span class="tag">needed</span></td><td class="total">${fmt(x.d,2)}<span class="tag">min</span></td>`;
+      return x.reached?`<td>${fmt(x.E)}</td><td><span class="pill crit">Already reached</span></td>`:`<td>${fmt(x.E)}</td><td class="total">${fmt(x.d,2)}</td>`;
     };
-    return`<tr><td>${orgName(R.o)}</td><td>${fmt(R.cum)}</td>${cell(R.c.aim)}${cell(R.c.limit)}</tr>`;
+    const tc=todayCheck(R,m);
+    const today=M.di>=0?`<td class="draft">${num(R.today)?`<span class="pill ${tc||'na'} mono">${R.today.toFixed(2)}</span>`:'<span class="muted">—</span>'}</td>`:'';
+    return`<tr><td>${orgName(R.o)}</td><td>${fmt(R.cumDel)}</td>${today}${cell(R.c.aim)}${cell(R.c.limit)}</tr>`;
   }).join('');
-  document.getElementById('rem-table').innerHTML=h+'</tbody>';
+  $('rem-table').innerHTML=h+'</tbody>';
 
   renderDeesc(M,D);
   save();
 }
 
 function renderDeesc(M,D){
-  const out=document.getElementById('deesc-out'),led=document.getElementById('ledger'),t=document.getElementById('testRx');
-  const bLab=S.de.basis==='aim'?'their preferred values (target: optimal)':'their maximum values (target: acceptable)';
+  const out=$('deesc-out'),led=$('ledger'),t=$('testRx');
+  const bLab=S.de.basis==='aim'?'their preferred values':'their maximum values';
+  const src=M.hasDraft?`Organ ratios come from today's plan (Fx ${M.di+1}).`:'Organ ratios are averaged over the delivered fractions.';
+  $('deesc-lede').textContent=`Scales the plan by each organ's dose-to-prescription ratio, then finds the highest prescription that keeps every organ within its goal and the lowest that brings the target to its goal. ${src}`;
   if(D.state!=='ok'){
-    const txt={nodata:'Enter at least one delivered fraction to estimate the next prescription.',done:'All planned fractions are entered. Nothing left to adjust.',norx:'Enter the planned prescription per fraction.'}[D.state];
+    const txt={nodata:"Enter today's plan or a delivered fraction to estimate the prescription.",done:'All planned fractions are delivered. Nothing left to adjust.',norx:'Enter the planned prescription per fraction.'}[D.state];
     out.innerHTML=`<div class="msg na">${txt}</div>`;led.innerHTML='';t.value='';return;
   }
   const T=num(S.de.test)?S.de.test:D.rec;
   if(document.activeElement!==t)t.value=num(S.de.test)?S.de.test:(num(D.rec)?D.rec.toFixed(1):'');
   const scope=D.mode==='last'
-    ?(D.m>1?`Fractions before the last stay at ${D.rxP} Gy; only fraction ${S.brachy.N} is adjusted.`:`Next fraction is the last one.`)
-    :`Applied equally to the ${D.m} remaining fraction${D.m>1?'s':''}.`;
+    ?(D.m>1?`Fractions before the last stay at ${D.rxP} Gy; only fraction ${S.brachy.N} is adjusted.`:`The next fraction is the last one.`)
+    :`Applied equally to the ${D.m} remaining fraction${D.m>1?'s':''}${M.di>=0?`, starting with Fx ${M.di+1}`:''}.`;
   const limName=D.lim?orgName(D.lim.R.o):'—';
   const tgtR=M.rows.find(R=>R.o.t),tgtFinal=project(tgtR,T,D);
+  const tg=S.de.basis==='aim'?'optimal':'acceptable';
   let msg;
-  if(!D.lim)msg=`<div class="msg na">No organ has both a goal and a delivered dose ratio, so no limit can be computed.</div>`;
+  if(!D.lim)msg=`<div class="msg na">No organ has both a goal and a dose ratio, so no limit can be computed.</div>`;
   else if(D.lim.exceeded)msg=`<div class="msg crit">${limName} has already reached its ${S.de.basis==='aim'?'preferred value':'maximum value'}. Any further dose exceeds it. Consider switching to Acceptable / Maximum, re-optimising to spare this organ, or a clinical decision on the remaining fractions.</div>`;
-  else if(D.conflict)msg=`<div class="msg crit">The target needs at least ${fmt(D.tgt.rxMin,2)} Gy / fx to reach its ${S.de.basis==='aim'?'optimal value':'acceptable value'}, but ${limName} allows only ${fmt(D.rxMax,2)} Gy / fx. At ${fmt(D.rec,1)} Gy / fx the target reaches ${fmt(project(tgtR,D.rec,D))} Gy EQD2${num(tgtR.c.limit)?` (acceptable ${tgtR.c.limit} Gy)`:''}. Scaling alone cannot satisfy both; re-optimise the dwell pattern or decide clinically which goal takes priority.</div>`;
-  else if(D.needDe)msg=`<div class="msg warn">De-escalate from ${D.rxP} Gy to ${D.rec.toFixed(1)} Gy per fraction to keep all organs within ${bLab}. ${limName} is the limiting organ.</div>`;
-  else msg=`<div class="msg ok">The planned ${D.rxP} Gy per fraction keeps all organs within ${bLab}. Headroom up to ${fmt(D.rxMax,2)} Gy / fx (limited by ${limName}).</div>`;
+  else if(D.conflict)msg=`<div class="msg crit">The target needs at least ${fmt(D.tgt.rxMin,2)} Gy / fx to reach its ${tg} value, but ${limName} allows only ${fmt(D.rxMax,2)} Gy / fx. At ${fmt(D.rec,1)} Gy / fx the target reaches ${fmt(project(tgtR,D.rec,D))} Gy EQD2${num(tgtR.c.limit)?` (acceptable ${tgtR.c.limit} Gy)`:''}. Scaling alone cannot satisfy both; re-optimise the dwell pattern or decide clinically which goal takes priority.</div>`;
+  else if(D.action==='down')msg=`<div class="msg warn">Lower the prescription from ${D.rxP} Gy to ${D.rec.toFixed(1)} Gy per fraction to keep all organs within ${bLab}. ${limName} is the limiting organ.</div>`;
+  else if(D.action==='up')msg=`<div class="msg warn">The target needs ${D.rec.toFixed(1)} Gy per fraction to reach its ${tg} value. Organs allow up to ${fmt(D.rxMax,2)} Gy / fx (limited by ${limName}), so the prescription can be raised from ${D.rxP} Gy.</div>`;
+  else msg=`<div class="msg ok">The planned ${D.rxP} Gy per fraction keeps all organs within ${bLab}${D.tgt?` and brings the target to its ${tg} value`:''}. Headroom up to ${fmt(D.rxMax,2)} Gy / fx (limited by ${limName}).</div>`;
 
   out.innerHTML=`<div class="verdict">
       <div><div class="lab">Recommended Rx / fx</div><div class="big mono">${fmt(D.rec,1)} Gy</div><div class="sub">planned ${D.rxP} Gy</div></div>
-      <div><div class="lab">Maximum permitted</div><div class="big mono">${num(D.rxMax)&&isFinite(D.rxMax)?fmt(D.rxMax,2):'—'} Gy</div><div class="sub">limiting: ${limName}</div></div>
-      <div><div class="lab">Minimum for target</div><div class="big mono">${D.tgt?fmt(D.tgt.rxMin,2)+' Gy':'—'}</div><div class="sub">${D.tgt?'to reach '+(S.de.basis==='aim'?'optimal ':'acceptable ')+D.tgt.goal+' Gy':'no target goal set'}</div></div>
-      <div><div class="lab">Target at test Rx</div><div class="big mono">${fmt(tgtFinal)} Gy</div><div class="sub">${orgName(tgtR.o)} · EQD2</div></div>
-    </div>${msg}<p class="note">${scope} Organ-to-Rx ratios are averaged over the delivered fractions.</p>`;
+      <div><div class="lab">Maximum for organs</div><div class="big mono">${isFinite(D.rxMax)?fmt(D.rxMax,2):'—'} Gy</div><div class="sub">limiting: ${limName}</div></div>
+      <div><div class="lab">Minimum for target</div><div class="big mono">${D.tgt?fmt(D.tgt.rxMin,2)+' Gy':'—'}</div><div class="sub">${D.tgt?'to reach '+tg+' '+D.tgt.goal+' Gy':'no target goal set'}</div></div>
+      <div><div class="lab">Target at test Rx</div><div class="big mono">${fmt(tgtFinal)} Gy</div><div class="sub">${orgName(tgtR.o)} · final EQD2</div></div>
+    </div>${msg}<p class="note">${scope}</p>`;
 
   led.innerHTML=M.rows.map(R=>{
     const fin=project(R,T,D),c=R.c;
-    const vals=[R.cum,fin,c.aim,c.limit].filter(num),max=(Math.max(...vals,1))*1.12;
+    const vals=[R.cumDel,fin,c.aim,c.limit].filter(num),max=(Math.max(...vals,1))*1.12;
     const p=x=>Math.max(0,Math.min(100,x/max*100));
-    const eW=p(R.ebrtEqd),bW=p(R.cum)-eW,pW=num(fin)?p(fin)-p(R.cum):0;
-    const st=status(R,num(fin)?fin:R.cum,true);
+    const eW=p(R.ebrtEqd),bW=p(R.cumDel)-eW,pW=num(fin)?p(fin)-p(R.cumDel):0;
+    const st=status(R,num(fin)?fin:R.cumDel,true);
     return`<div class="lrow">
-      <div class="lrow-top"><span class="nm">${orgName(R.o)}</span><span>${pill(st)} <span class="mono">${fmt(num(fin)?fin:R.cum)} Gy</span></span></div>
+      <div class="lrow-top"><span class="nm">${orgName(R.o)}</span><span>${pill(st)} <span class="mono">${fmt(num(fin)?fin:R.cumDel)} Gy</span></span></div>
       <div class="gauge" role="img" aria-label="${orgName(R.o)} projected ${fmt(fin)} Gy EQD2">
         <div class="sg e" style="left:0;width:${eW}%"></div>
         <div class="sg b" style="left:${eW}%;width:${Math.max(0,bW)}%"></div>
-        ${pW>0?`<div class="sg p" style="left:${p(R.cum)}%;width:${pW}%"></div>`:''}
+        ${pW>0?`<div class="sg p" style="left:${p(R.cumDel)}%;width:${pW}%"></div>`:''}
         ${num(c.aim)?`<div class="tk aim" style="left:calc(${p(c.aim)}% - 1px)"></div>`:''}
         ${num(c.limit)?`<div class="tk lim" style="left:calc(${p(c.limit)}% - 1px)"></div>`:''}
       </div>
-      <div class="cap">EBRT ${fmt(R.ebrtEqd)} · brachy +${fmt(R.cum-R.ebrtEqd)} · projected +${num(fin)?fmt(fin-R.cum):'—'}${num(R.r)?` · ratio ${fmt(R.r,2)}× Rx → ${fmt(R.r*T,2)} Gy/fx`:''}</div>
+      <div class="cap">EBRT ${fmt(R.ebrtEqd)} · brachy delivered +${fmt(R.cumDel-R.ebrtEqd)} · projected +${num(fin)?fmt(fin-R.cumDel):'—'}${num(R.r)?` · ratio ${fmt(R.r,2)}× Rx → ${fmt(R.r*T,2)} Gy/fx`:''}</div>
     </div>`;
   }).join('');
 }
 
 /* ---------- summary text ---------- */
 function summary(){
-  const {M,D}=LAST,e=S.ebrt,b=S.brachy;
+  const {M,D}=LAST,b=S.brachy,r=rec();
   const L=[];
-  L.push('GYN Brachy EQD2 — Designed by Medical Physicist Ali Eid');
-  L.push(`EBRT: ${document.getElementById('sum-ebrt').textContent}`);
-  L.push(`Brachytherapy: ${TECH[b.tech].n}, ${M.k} of ${b.N} fx entered, planned ${num(b.rx)?b.rx:'—'} Gy/fx`);
+  L.push(`GYN Brachy EQD2 v${APP_VERSION} — Designed by Medical Physicist Ali Eid`);
+  if(r)L.push(`Patient: ${r.name} · CPR ${r.cpr}`);
+  L.push(`EBRT: ${$('sum-ebrt').textContent}`);
+  L.push(`Brachytherapy: ${TECH[b.tech].n}, ${M.k} of ${b.N} fx delivered${M.hasDraft?`, Fx ${M.di+1} plan included`:''}, planned ${num(b.rx)?b.rx:'—'} Gy/fx`);
   L.push('');
-  L.push('Structure | α/β | EBRT EQD2 | Cumulative EQD2 | Optimal-Preferred | Acceptable-Maximum');
-  M.rows.forEach(R=>L.push(`${orgName(R.o)} | ${R.ab} | ${fmt(R.ebrtEqd)} | ${fmt(R.cum)} | ${R.c.aim??'—'} | ${R.c.limit??'—'}`));
+  L.push(`Structure | α/β | EBRT EQD2 | Delivered EQD2${M.hasDraft?" | With today's plan":''} | Optimal-Preferred | Acceptable-Maximum`);
+  M.rows.forEach(R=>L.push(`${orgName(R.o)} | ${R.ab} | ${fmt(R.ebrtEqd)} | ${fmt(R.cumDel)}${M.hasDraft?` | ${fmt(R.cumPlan)}`:''} | ${R.c.aim??'—'} | ${R.c.limit??'—'}`));
   if(D.state==='ok'){
     const T=num(S.de.test)?S.de.test:D.rec;
     L.push('');
-    L.push(`De-escalation (${S.de.basis==='aim'?'Optimal / Preferred':'Acceptable / Maximum'}, ${D.mode==='last'?'last fraction only':'all remaining fractions'}): max ${fmt(D.rxMax,2)} Gy/fx, limiting ${D.lim?orgName(D.lim.R.o):'—'}; recommended ${fmt(D.rec,1)} Gy/fx.`);
-    L.push(`Projected at ${fmt(T,1)} Gy/fx: `+M.rows.map(R=>`${orgName(R.o)} ${fmt(project(R,T,D))}`).join('; '));
+    L.push(`Prescription estimate (${S.de.basis==='aim'?'Optimal / Preferred':'Acceptable / Maximum'}, ${D.mode==='last'?'last fraction only':'all remaining fractions'}): organs allow up to ${fmt(D.rxMax,2)} Gy/fx (limiting ${D.lim?orgName(D.lim.R.o):'—'}); recommended ${fmt(D.rec,1)} Gy/fx.`);
+    L.push(`Projected final EQD2 at ${fmt(T,1)} Gy/fx: `+M.rows.map(R=>`${orgName(R.o)} ${fmt(project(R,T,D))}`).join('; '));
   }
   return L.join('\n');
 }
-function toast(t){const el=document.getElementById('toast');el.textContent=t;el.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>el.hidden=true,1800)}
+function toast(t){const el=$('toast');el.textContent=t;el.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>el.hidden=true,2200)}
 
-/* ---------- events ---------- */
-document.addEventListener('input',ev=>{
-  const el=ev.target;if(!el.dataset||!el.dataset.k)return;
-  const p=el.dataset.k;
-  let v=el.value===''?null:parseFloat(el.value);if(!num(v))v=null;
-  if(p==='brachy.N'){S.brachy.N=parseInt(el.value,10);S.example=false;renderInputs();return}
-  setPath(p,v);S.example=false;
-  if(p.startsWith('ab.')||p==='ebrt.p1D'||p==='ebrt.p2D'||p==='brachy.rx'){renderOutputs();return}
-  renderOutputs();
-});
-document.getElementById('bN').addEventListener('change',ev=>{S.brachy.N=parseInt(ev.target.value,10);renderInputs()});
-document.querySelectorAll('.mode').forEach(x=>x.addEventListener('click',()=>{S.view=x.dataset.view;renderOutputs()}));
-document.querySelectorAll('#tech-seg button').forEach(x=>x.addEventListener('click',()=>{S.brachy.tech=x.dataset.tech;renderInputs()}));
-document.querySelectorAll('#basis-seg button').forEach(x=>x.addEventListener('click',()=>{S.de.basis=x.dataset.basis;S.de.test=null;renderInputs()}));
-document.querySelectorAll('#mode-seg button').forEach(x=>x.addEventListener('click',()=>{S.de.mode=x.dataset.mode;S.de.test=null;renderInputs()}));
-document.getElementById('btn-use-rec').addEventListener('click',()=>{S.de.test=null;document.getElementById('testRx').value='';renderOutputs()});
-document.getElementById('btn-preset').addEventListener('click',()=>{S.cons[S.brachy.tech]=clone(PRESET[S.brachy.tech]);S.ab={...AB};renderInputs();toast('Preset restored')});
-document.getElementById('btn-example').addEventListener('click',()=>{S=example();renderInputs();toast('Example loaded')});
-document.getElementById('btn-clear').addEventListener('click',ev=>{
-  const btn=ev.currentTarget;
-  if(btn.dataset.armed!=='1'){btn.dataset.armed='1';btn.textContent='Tap again to clear';setTimeout(()=>{btn.dataset.armed='';btn.textContent='Clear patient'},3000);return}
-  btn.dataset.armed='';btn.textContent='Clear patient';S=blank();renderInputs();toast('Patient cleared');
-});
-document.getElementById('btn-copy').addEventListener('click',()=>{
-  const txt=summary();
-  try{navigator.clipboard.writeText(txt).then(()=>toast('Summary copied'),()=>fallbackCopy(txt))}catch(e){fallbackCopy(txt)}
-});
-function fallbackCopy(txt){const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast('Summary copied')}catch(e){toast('Copy not available')}ta.remove()}
-
-/* ---------- patient (kept in memory only) ---------- */
-const P={name:'',cpr:'',date:new Date().toISOString().slice(0,10)};
-const ptName=document.getElementById('ptName'),ptCpr=document.getElementById('ptCpr'),ptDate=document.getElementById('ptDate'),ptNote=document.getElementById('pt-note');
-const PT_NOTE=ptNote.textContent;
-ptDate.value=P.date;
-ptName.addEventListener('input',()=>{P.name=ptName.value.trim();ptName.removeAttribute('aria-invalid')});
-ptCpr.addEventListener('input',()=>{ptCpr.value=ptCpr.value.replace(/\D/g,'').slice(0,9);P.cpr=ptCpr.value;ptCpr.removeAttribute('aria-invalid')});
-ptDate.addEventListener('input',()=>{P.date=ptDate.value});
+/* ---------- files ---------- */
+const isMobile=()=>/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Mac/.test(navigator.platform));
+async function saveFile(fname,blob,label){
+  let dl=null;
+  try{dl=window.claude&&typeof window.claude.use==='function'?await window.claude.use('downloads'):null}catch(e){dl=null}
+  if(dl){
+    try{const r=await dl.save({filename:fname,data:blob});if(r.status==='saved')toast(label+' saved')}
+    catch(err){if(!err||err.code!=='declined')toast('Could not save the file here')}
+    return;
+  }
+  try{
+    const file=new File([blob],fname,{type:blob.type});
+    if(isMobile()&&navigator.canShare&&navigator.canShare({files:[file]})){
+      try{await navigator.share({files:[file],title:fname});return}catch(err){if(err&&err.name==='AbortError')return}
+    }
+  }catch(e){}
+  try{
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname;document.body.appendChild(a);a.click();
+    setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);toast(label+' saved');
+  }catch(e){toast('Could not save the file here')}
+}
+const slug=s=>String(s).trim().replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'').slice(0,40)||'patient';
+function exportPatient(){
+  const r=rec();if(!r)return;save();
+  const data={app:'GYN Brachy EQD2',format:1,version:APP_VERSION,exported:new Date().toISOString(),patient:r};
+  saveFile(`GYN_EQD2_${r.cpr}_${slug(r.name)}.json`,new Blob([JSON.stringify(data,null,1)],{type:'application/json'}),'Patient file');
+}
+function backupAll(){
+  save();
+  const list=Object.values(DB.patients);
+  if(!list.length){toast('No patients to back up');return}
+  const data={app:'GYN Brachy EQD2',format:1,version:APP_VERSION,exported:new Date().toISOString(),patients:list};
+  saveFile(`GYN_EQD2_backup_${localDate().replace(/-/g,'')}_${list.length}pts.json`,new Blob([JSON.stringify(data)],{type:'application/json'}),'Backup');
+}
+function importData(obj){
+  let list=[];
+  if(obj&&obj.patient)list=[obj.patient];else if(obj&&Array.isArray(obj.patients))list=obj.patients;
+  else throw new Error('This file is not a GYN Brachy EQD2 patient file.');
+  let added=0,updated=0,skipped=0,firstId=null;
+  list.forEach(p=>{
+    if(!p||typeof p.name!=='string'||!/^\d{9}$/.test(String(p.cpr||''))||!p.state){skipped++;return}
+    const clean={name:p.name.trim(),cpr:String(p.cpr),created:p.created||Date.now(),updated:p.updated||Date.now(),example:!!p.example,state:normalize(clone(p.state))};
+    const ex=findByCpr(clean.cpr);
+    if(!ex){const id=uid();DB.patients[id]=Object.assign({id},clean);added++;firstId=firstId||id}
+    else if((clean.updated||0)>(ex.updated||0)){DB.patients[ex.id]=Object.assign({id:ex.id},clean);updated++;firstId=firstId||ex.id}
+    else skipped++;
+  });
+  saveDB();
+  return{added,updated,skipped,firstId,single:list.length===1};
+}
 
 /* ---------- PDF report ---------- */
 function loadScript(src){return new Promise(res=>{const s=document.createElement('script');s.src=src;s.onload=()=>res(true);s.onerror=()=>res(false);document.head.appendChild(s)})}
@@ -694,13 +973,13 @@ async function ensurePdfLib(){
   if(window.jspdf&&!hasAT())await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
   return hasAT();
 }
-const pdfText=t=>String(t).replace(/α\/β/g,'a/b').replace(/≥/g,'>=').replace(/≤/g,'<=').replace(/—/g,'-').replace(/·/g,'-').replace(/×/g,'x').replace(/→/g,'->').replace(/[^\x20-\x7E]/g,'');
+const pdfText=t=>String(t).replace(/α\/β/g,'a/b').replace(/≥/g,'>=').replace(/≤/g,'<=').replace(/[—–]/g,'-').replace(/·/g,'-').replace(/×/g,'x').replace(/→/g,'->').replace(/[^\x20-\x7E]/g,'');
 const goalTxt=(o,v)=>num(v)?(o.t?'>= ':'< ')+v:'-';
 
 function buildPdf(){
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF({unit:'mm',format:'a4'});
-  const {M,D}=LAST,e=S.ebrt,b=S.brachy,W=210,mx=14;
+  const {M,D}=LAST,b=S.brachy,r=rec(),W=210,mx=14;
   const ink=[28,25,34],plum=[138,45,104],grey=[104,98,116];
   let y=16;
   doc.setTextColor(...grey);doc.setFontSize(8);doc.text('BAHRAIN ONCOLOGY CENTER - MEDICAL PHYSICS',mx,y);
@@ -708,69 +987,66 @@ function buildPdf(){
   y+=4;doc.setDrawColor(...plum);doc.setLineWidth(.6);doc.line(mx,y,W-mx,y);
   y+=6;doc.setTextColor(...ink);doc.setFontSize(10);
   const kv=(k,v,x,yy)=>{doc.setFont('helvetica','bold');doc.text(k,x,yy);doc.setFont('helvetica','normal');doc.text(pdfText(v),x+28,yy)};
-  kv('Patient name',P.name,mx,y);kv('CPR',P.cpr,120,y);
-  y+=6;kv('Report date',P.date||'-',mx,y);kv('Technique',TECH[b.tech].n,120,y);
-  y+=6;kv('EBRT',document.getElementById('sum-ebrt').textContent,mx,y);kv('Brachy',`${M.k} of ${b.N} fx, planned ${num(b.rx)?b.rx:'-'} Gy/fx`,120,y);
+  kv('Patient name',r.name,mx,y);kv('CPR',r.cpr,120,y);
+  y+=6;kv('Report date',dateFmt(UI.reportDate)||'-',mx,y);kv('Technique',TECH[b.tech].n,120,y);
+  y+=6;kv('EBRT',$('sum-ebrt').textContent,mx,y);kv('Brachy',`${M.k} of ${b.N} fx delivered, Rx ${num(b.rx)?b.rx:'-'} Gy/fx`,120,y);
+  if(M.hasDraft){y+=6;doc.setFont('helvetica','italic');doc.setFontSize(9);doc.setTextColor(...plum);doc.text(pdfText(`Includes the plan for Fx ${M.di+1} (not yet delivered).`),mx,y);doc.setTextColor(...ink)}
   y+=4;
-
   const tbl=(title,head,body,opts={})=>{
-    y+=6;doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...plum);doc.text(title,mx,y);
-    doc.autoTable({startY:y+2,head:[head.map(pdfText)],body:body.map(r=>r.map(pdfText)),margin:{left:mx,right:mx,top:16,bottom:24},
+    y+=6;if(y>262){doc.addPage();y=18}
+    doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...plum);doc.text(title,mx,y);
+    doc.autoTable({startY:y+2,head:[head.map(pdfText)],body:body.map(rw=>rw.map(pdfText)),margin:{left:mx,right:mx,top:16,bottom:24},
       styles:{fontSize:8.5,cellPadding:1.8,textColor:ink,halign:'right'},headStyles:{fillColor:[239,237,242],textColor:grey,fontStyle:'bold',halign:'right'},
       columnStyles:{0:{halign:'left',fontStyle:'bold'}},theme:'grid',...opts});
     y=doc.lastAutoTable.finalY;
   };
-
   tbl('External beam',['Structure','a/b','Physical (Gy)','BED (Gy)','EQD2 (Gy)'],
     M.rows.map(R=>[orgName(R.o),R.ab,fmt(R.d1+R.d2),fmt(R.ebrtBed),fmt(R.ebrtEqd)]));
-
   const cols=[...Array(b.N).keys()];
-  tbl('Brachytherapy physical dose per fraction (Gy)',['Structure',...cols.map(i=>'Fx '+(i+1))],
-    [['Prescribed dose',...cols.map(i=>M.deliv[i]?fmt(num(b.fx[i].rx)?b.fx[i].rx:b.rx,2):'-')],
-     ...M.rows.map(R=>[orgName(R.o),...cols.map(i=>M.deliv[i]&&num(b.fx[i][R.o.k])?fmt(b.fx[i][R.o.k],2):'-')])]);
-
-  tbl('Cumulative EQD2, EBRT + brachytherapy (Gy)',['Structure','EBRT',...cols.map(i=>'+Fx '+(i+1)),'Total EQD2','Total BED','Optimal / Preferred','Acceptable / Maximum','Status'],
-    M.rows.map(R=>[orgName(R.o),fmt(R.ebrtEqd),...cols.map(i=>M.deliv[i]?fmt(R.run[i]):'-'),fmt(R.cum),fmt(R.cumBed),goalTxt(R.o,R.c.aim),goalTxt(R.o,R.c.limit),status(R,R.cum,M.m===0).txt]),
+  const colLab=i=>i<M.k?`Fx ${i+1} ${dateFmt(b.fx[i].date)}`:(i===M.di&&M.hasDraft?`Fx ${i+1} plan`:`Fx ${i+1}`);
+  const show=i=>i<M.k||(i===M.di&&M.hasDraft);
+  tbl('Brachytherapy physical dose per fraction (Gy)',['Structure',...cols.map(colLab)],
+    [['Prescribed dose',...cols.map(i=>show(i)?fmt(num(b.fx[i].rx)?b.fx[i].rx:b.rx,2):'-')],
+     ...M.rows.map(R=>[orgName(R.o),...cols.map(i=>show(i)&&num(b.fx[i][R.o.k])?fmt(b.fx[i][R.o.k],2):'-')])],
+    {styles:{fontSize:8,cellPadding:1.6,textColor:ink,halign:'right'}});
+  const shown=[...Array(M.k+(M.hasDraft?1:0)).keys()];
+  const final=M.k+(M.hasDraft?1:0)===M.N;
+  tbl('Cumulative EQD2, EBRT + brachytherapy (Gy)',['Structure','EBRT',...shown.map(i=>'+Fx '+(i+1)+(i===M.di?' plan':'')),'Delivered',...(M.hasDraft?['With plan']:[]),'Opt / Pref','Acc / Max','Status'],
+    M.rows.map(R=>[orgName(R.o),fmt(R.ebrtEqd),...shown.map(i=>fmt(R.run[i])),fmt(R.cumDel),...(M.hasDraft?[fmt(R.cumPlan)]:[]),goalTxt(R.o,R.c.aim),goalTxt(R.o,R.c.limit),status(R,M.hasDraft?R.cumPlan:R.cumDel,final).txt]),
     {styles:{fontSize:7.5,cellPadding:1.5,textColor:ink,halign:'right'}});
-
   if(M.m>0){
-    const row=(R,goal)=>{
-      if(!num(goal))return['-','-'];
-      const E=goal-R.cum;
-      if(R.o.t)return E<=0?['0.0','Reached']:[fmt(E)+' needed',fmt(solveD(E,M.m,R.ab),2)+' min'];
-      return E<=0?[fmt(E),'Already reached']:[fmt(E),fmt(solveD(E,M.m,R.ab),2)];
-    };
-    tbl(`Dose left for the remaining ${M.m} fraction${M.m>1?'s':''}`,['Structure','Cumulative','EQD2 left to Opt/Pref','Gy/fx','EQD2 left to Acc/Max','Gy/fx'],
-      M.rows.map(R=>[orgName(R.o),fmt(R.cum),...row(R,R.c.aim),...row(R,R.c.limit)]));
+    const rw=(R,goal)=>{const x=remaining(R,goal,M.m);if(!x)return['-','-'];
+      if(R.o.t)return x.reached?['0.0','Reached']:[fmt(x.E)+' needed',fmt(x.d,2)+' min'];
+      return x.reached?[fmt(x.E),'Already reached']:[fmt(x.E),fmt(x.d,2)]};
+    tbl(`Dose left for the remaining ${M.m} fraction${M.m>1?'s':''}`,['Structure','Delivered EQD2',...(M.di>=0?["Today's plan (Gy)"]:[]),'EQD2 left to Opt/Pref','Gy/fx','EQD2 left to Acc/Max','Gy/fx'],
+      M.rows.map(R=>[orgName(R.o),fmt(R.cumDel),...(M.di>=0?[num(R.today)?R.today.toFixed(2):'-']:[]),...rw(R,R.c.aim),...rw(R,R.c.limit)]));
   }
-
   if(D.state==='ok'){
     const T=num(S.de.test)?S.de.test:D.rec;
-    y+=7;if(y>255){doc.addPage();y=18}
-    doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...plum);doc.text('Prescription de-escalation estimate',mx,y);
+    y+=7;if(y>250){doc.addPage();y=18}
+    doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...plum);doc.text('Prescription adjustment estimate',mx,y);
     doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...ink);
+    const act={down:`Lower the prescription to ${fmt(D.rec,1)} Gy/fx.`,up:`Raise the prescription to ${fmt(D.rec,1)} Gy/fx to reach the target goal.`,upcap:`Organs cap the prescription at ${fmt(D.rec,1)} Gy/fx.`,keep:`Keep the planned ${D.rxP} Gy/fx.`}[D.action];
     const lines=[
-      `Organs kept within: ${D.basis==='aim'?'Optimal / Preferred':'Acceptable / Maximum'}. Change applied to: ${D.mode==='last'?'last fraction only':'all remaining fractions'}.`,
-      `Planned Rx ${D.rxP} Gy/fx. Maximum permitted ${isFinite(D.rxMax)?fmt(D.rxMax,2):'-'} Gy/fx (limiting: ${D.lim?orgName(D.lim.R.o):'-'}). Recommended ${fmt(D.rec,1)} Gy/fx.`,
+      `Organs kept within: ${D.basis==='aim'?'Optimal / Preferred':'Acceptable / Maximum'}. Change applied to: ${D.mode==='last'?'last fraction only':'all remaining fractions'}. ${M.hasDraft?`Organ ratios from the Fx ${M.di+1} plan.`:'Organ ratios averaged over delivered fractions.'}`,
+      `Planned Rx ${D.rxP} Gy/fx. Maximum for organs ${isFinite(D.rxMax)?fmt(D.rxMax,2):'-'} Gy/fx (limiting: ${D.lim?orgName(D.lim.R.o):'-'}). ${act}`,
       D.tgt?`Minimum Rx for target to reach ${D.basis==='aim'?'optimal':'acceptable'} (${D.tgt.goal} Gy): ${fmt(D.tgt.rxMin,2)} Gy/fx.${D.conflict?' Conflict: target goal not reachable within organ constraints by scaling alone.':''}`:'No target goal set.'
     ];
     lines.forEach(l=>{const w=doc.splitTextToSize(pdfText(l),W-2*mx);y+=5;doc.text(w,mx,y);y+=(w.length-1)*4.2});
     tbl(`Projected final EQD2 at ${fmt(T,1)} Gy/fx`,['Structure','Ratio to Rx','Dose/fx (Gy)','Projected EQD2','Status'],
-      M.rows.map(R=>{const f=project(R,T,D);return[orgName(R.o),num(R.r)?fmt(R.r,2):'-',num(R.r)?fmt(R.r*T,2):'-',fmt(f),status(R,num(f)?f:R.cum,true).txt]}));
+      M.rows.map(R=>{const f=project(R,T,D);return[orgName(R.o),num(R.r)?fmt(R.r,2):'-',num(R.r)?fmt(R.r*T,2):'-',fmt(f),status(R,num(f)?f:R.cumDel,true).txt]}));
   }
-
   y+=14;if(y>262){doc.addPage();y=24}
   doc.setDrawColor(...grey);doc.setLineWidth(.2);doc.setFontSize(9);doc.setTextColor(...ink);doc.setFont('helvetica','normal');
   doc.line(mx,y,mx+70,y);doc.line(W-mx-70,y,W-mx,y);
   doc.text('Medical Physicist - signature / date',mx,y+4);doc.text('Radiation Oncologist - signature / date',W-mx-70,y+4);
-
   const pages=doc.getNumberOfPages();
   for(let i=1;i<=pages;i++){
     doc.setPage(i);doc.setFontSize(7);doc.setTextColor(...grey);
     const f=[
       'EQD2 = BED / (1 + 2/(a/b)); BED = n.d.(1 + d/(a/b)). LQ model, no time correction. Estimate assumes proportional scaling with the same applicator geometry.',
       'Designed by Medical Physicist Ali Eid - Supervised by Dr. Zainab Alhaddad - Tested by Medical Physicist Hamad Almannai and the Radiation Oncology team.',
-      `(c) 2026 Medical Physicist Ali Eid. All rights reserved.    Page ${i} of ${pages}`
+      `(c) 2026 Medical Physicist Ali Eid. All rights reserved.  GYN Brachy EQD2 v${APP_VERSION}    Page ${i} of ${pages}`
     ];
     const fl=f.flatMap(t=>doc.splitTextToSize(t,W-2*mx));
     let fy=293-fl.length*3.2;doc.setDrawColor(220,216,226);doc.line(mx,fy-2.5,W-mx,fy-2.5);
@@ -779,31 +1055,101 @@ function buildPdf(){
   return doc;
 }
 
-document.getElementById('btn-pdf').addEventListener('click',async()=>{
-  let bad=false;
-  if(!P.name){ptName.setAttribute('aria-invalid','true');bad=true}
-  if(!/^\d{9}$/.test(P.cpr)){ptCpr.setAttribute('aria-invalid','true');bad=true}
-  if(bad){ptNote.textContent='Enter the patient name and a 9-digit CPR before exporting the report.';ptNote.classList.add('err');ptName.scrollIntoView({behavior:'smooth',block:'center'});return}
-  ptNote.textContent=PT_NOTE;ptNote.classList.remove('err');
-  if(!(await ensurePdfLib())){toast('PDF tool could not load. Connect to the internet once and try again.');return}
-  const doc=buildPdf();
-  const fname=`GYN_EQD2_${P.cpr}_${(P.date||'').replace(/-/g,'')}.pdf`;
-  let dl=null;
-  try{dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null}catch(e){dl=null}
-  if(dl){
-    try{const r=await dl.save({filename:fname,data:doc.output('blob')});if(r.status==='saved')toast('Report saved')}
-    catch(err){if(err&&err.code!=='declined')toast('Could not save the report here')}
-  }else{
-    const mobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Mac/.test(navigator.platform));
-    try{
-      const file=new File([doc.output('blob')],fname,{type:'application/pdf'});
-      if(mobile&&navigator.canShare&&navigator.canShare({files:[file]})){
-        try{await navigator.share({files:[file],title:'GYN EQD2 report'});toast('Report ready')}catch(err){if(err&&err.name!=='AbortError')doc.save(fname)}
-      }else{doc.save(fname);toast('Report exported')}
-    }catch(e){try{doc.save(fname);toast('Report exported')}catch(e2){toast('Could not save the report here')}}
-  }
+/* ---------- events ---------- */
+document.addEventListener('input',ev=>{
+  const el=ev.target;if(!S||!el.dataset||!el.dataset.k)return;
+  const p=el.dataset.k;
+  if(p==='brachy.N')return;
+  let v=el.value===''?null:parseFloat(el.value);if(!num(v))v=null;
+  setPath(p,v);renderOutputs();
+});
+$('bN').addEventListener('change',ev=>{const n=parseInt(ev.target.value,10);const k=progress(S).k;S.brachy.N=Math.max(n,k,1);renderInputs()});
+document.querySelectorAll('.mode').forEach(x=>x.addEventListener('click',()=>{S.view=x.dataset.view;renderOutputs()}));
+document.querySelectorAll('#tech-seg button').forEach(x=>x.addEventListener('click',()=>{S.brachy.tech=x.dataset.tech;renderInputs()}));
+document.querySelectorAll('#basis-seg button').forEach(x=>x.addEventListener('click',()=>{S.de.basis=x.dataset.basis;S.de.test=null;renderInputs()}));
+document.querySelectorAll('#mode-seg button').forEach(x=>x.addEventListener('click',()=>{S.de.mode=x.dataset.mode;S.de.test=null;renderInputs()}));
+$('btn-use-rec').addEventListener('click',()=>{S.de.test=null;$('testRx').value='';renderOutputs()});
+$('btn-preset').addEventListener('click',()=>{S.cons[S.brachy.tech]=clone(PRESET[S.brachy.tech]);S.ab={...AB};renderInputs();toast('Preset restored')});
+$('btn-copy').addEventListener('click',()=>{
+  const txt=summary();
+  try{navigator.clipboard.writeText(txt).then(()=>toast('Summary copied'),()=>fallbackCopy(txt))}catch(e){fallbackCopy(txt)}
+});
+function fallbackCopy(txt){const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast('Summary copied')}catch(e){toast('Copy not available')}ta.remove()}
+
+// patient bar
+$('btn-patients').addEventListener('click',()=>{UI.more=!UI.more;renderPatient()});
+$('btn-new').addEventListener('click',()=>{UI.panel=!UI.panel;UI.newForm=false;renderPatient()});
+$('ptDate').addEventListener('input',e=>{UI.reportDate=e.target.value});
+$('editName').addEventListener('input',e=>{const r=rec();if(!r)return;const v=e.target.value.trim();if(!v){$('edit-note').textContent='Name cannot be empty.';$('edit-note').className='note err';return}
+  $('edit-note').textContent='';r.name=v;save();$('pt-title').textContent=v;renderList()});
+$('editCpr').addEventListener('input',e=>{const r=rec();if(!r)return;e.target.value=e.target.value.replace(/\D/g,'').slice(0,9);const v=e.target.value,n=$('edit-note');
+  if(v.length!==9){n.textContent='CPR must be 9 digits. Not saved yet.';n.className='note err';return}
+  if(findByCpr(v,r.id)){n.textContent='Another patient on this device already has this CPR. Not saved.';n.className='note err';return}
+  n.textContent='';n.className='note';r.cpr=v;save();renderPatient()});
+$('btn-export-pt').addEventListener('click',exportPatient);
+$('btn-delete-pt').addEventListener('click',e=>{
+  const r=rec();if(!r)return;
+  if(!arm('del',e.currentTarget,'Delete patient',`Tap again to delete ${r.name}`)){$('edit-note').textContent='Deleting removes this record from this device. Export the patient file first if you may need it.';$('edit-note').className='note warn-t';return}
+  delete DB.patients[r.id];DB.active=null;S=null;UI.panel=true;UI.more=false;saveDB();renderInputs();toast('Patient deleted');
 });
 
+// list panel
+$('pSearch').addEventListener('input',e=>{UI.search=e.target.value;renderList()});
+$('plist').addEventListener('click',e=>{const b=e.target.closest('[data-open]');if(b)openPatient(b.dataset.open)});
+$('btn-new-cancel').addEventListener('click',()=>{UI.newForm=false;renderPatient()});
+$('new-form').addEventListener('submit',e=>{
+  e.preventDefault();
+  const name=$('nName').value.trim(),cpr=$('nCpr').value.trim(),msg=$('new-msg');
+  const rx=parseFloat($('nRx').value);
+  msg.className='note err';
+  if(!name){msg.textContent='Enter the patient name.';return}
+  if(!/^\d{9}$/.test(cpr)){msg.textContent='CPR must be 9 digits.';return}
+  const ex=findByCpr(cpr);
+  if(ex){msg.innerHTML=`A record for CPR ${esc(cpr)} already exists (${esc(ex.name)}). <button class="btn sm" type="button" data-open="${ex.id}">Open it</button>`;
+    msg.querySelector('[data-open]').addEventListener('click',()=>openPatient(ex.id));return}
+  const id=createPatient(name,cpr,$('nTech').value,parseInt($('nN').value,10),num(rx)&&rx>0?rx:null);
+  msg.textContent='';msg.className='note';
+  $('nName').value='';$('nCpr').value='';
+  try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().catch(()=>{})}catch(err){}
+  openPatient(id);toast('Patient created. Start with the external beam.');
+});
+$('nCpr').addEventListener('input',e=>{e.target.value=e.target.value.replace(/\D/g,'').slice(0,9)});
+$('btn-import').addEventListener('click',()=>$('importFile').click());
+$('importFile').addEventListener('change',e=>{
+  const f=e.target.files&&e.target.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      const res=importData(JSON.parse(rd.result));
+      const parts=[];if(res.added)parts.push(`${res.added} added`);if(res.updated)parts.push(`${res.updated} updated`);if(res.skipped)parts.push(`${res.skipped} skipped (same or older, or invalid)`);
+      toast('Import: '+(parts.join(', ')||'nothing new'));
+      if(res.single&&res.firstId)openPatient(res.firstId);else renderPatient();
+    }catch(err){toast(err&&err.message&&err.message.startsWith('This file')?err.message:'Could not read this file.')}
+    e.target.value='';
+  };
+  rd.readAsText(f);
+});
+$('btn-backup').addEventListener('click',backupAll);
+
+// show "New patient" form from the list
+$('pt-panel').addEventListener('click',e=>{if(e.target.id==='btn-show-new'){UI.newForm=true;renderPatient();$('nName').focus()}});
+
+$('btn-pdf').addEventListener('click',async()=>{
+  const r=rec();if(!r)return;
+  if(!(await ensurePdfLib())){toast('PDF tool could not load. Connect to the internet once and try again.');return}
+  const doc=buildPdf();
+  const fname=`GYN_EQD2_${r.cpr}_${(UI.reportDate||'').replace(/-/g,'')}.pdf`;
+  saveFile(fname,doc.output('blob'),'Report');
+});
+
+/* ---------- start ---------- */
+loadDB();
+if(!DB.seeded&&!Object.keys(DB.patients).length){
+  const id=createPatient('EXAMPLE – Demo patient','000000000','iu',4,7,exampleState(),{example:true});
+  DB.active=id;DB.seeded=true;
+}
+DB.seeded=true;
+if(DB.active&&DB.patients[DB.active])openPatient(DB.active,true);else{DB.active=null;S=null}
 renderInputs();
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}
 </script>

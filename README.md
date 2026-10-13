@@ -2,7 +2,7 @@
 
 Cumulative EQD2 and BED calculator for gynaecological radiotherapy: external beam plus vaginal cylinder, intrauterine and interstitial HDR brachytherapy.
 
-**Version 1.0.2**
+**Version 1.1.0**
 
 - Designed by **Medical Physicist Ali Eid**
 - Supervised by **Dr. Zainab Alhaddad**
@@ -16,15 +16,24 @@ Cumulative EQD2 and BED calculator for gynaecological radiotherapy: external bea
 
 ## Features
 
+- **Patient records:** each patient (name and CPR) keeps their external beam, every delivered brachytherapy fraction with its date, the constraints and the course settings. Records are saved automatically on the device, can be searched by name or CPR, and can be exported as a patient file or backed up all at once.
+- **Session workflow:** delivered fractions are locked. At each session you open the patient and enter only today's plan; results update as you type. When the fraction is treated, select **Mark as delivered**. **Reopen** corrects the last delivered fraction.
 - **External beam:** Phase 1 and optional Phase 2 boost. BED and EQD2 per structure, with a per-structure dose override (midline block, nodal boost).
 - **Brachytherapy:** vaginal cylinder, intrauterine, or interstitial; 1–6 fractions. You enter the physical dose per fraction for HR-CTV D90 and for bladder, rectum, sigmoid and bowel D2cc.
 - **Cumulative EQD2:** the running EBRT + brachy total after each fraction, with total BED and a status for each structure.
-- **Dose left for the remaining fractions:** the remaining EQD2 budget and the maximum physical dose per fraction for each organ. For the target, the minimum dose per fraction still needed.
-- **Prescription de-escalation estimate:** the highest prescription per fraction that keeps every organ within its constraint, the limiting organ, the minimum prescription the target needs, and a projected final EQD2 at a test prescription. It can apply the change to all remaining fractions or to the last fraction only.
+- **Dose left for the remaining fractions:** the remaining EQD2 budget and the maximum physical dose per fraction for each organ, with today's plan checked against those values. For the target, the minimum dose per fraction still needed.
+- **Prescription adjustment estimate:** the highest prescription per fraction that keeps every organ within its constraint, the limiting organ, and the minimum prescription the target needs. It recommends lowering or raising the prescription and shows a projected final EQD2 at a test prescription. The change can apply to all remaining fractions or to the last fraction only. While today's plan is entered, organ ratios come from that plan; otherwise they are averaged over the delivered fractions.
 - **Constraints:** Optimal / Acceptable for the target, Preferred / Maximum for organs. Presets follow EMBRACE II / GEC-ESTRO and can be edited.
-- **PDF report:** includes patient name, CPR and date, all tables, the de-escalation estimate and signature lines. Name and CPR are required to export.
-- **Privacy:** patient name and CPR are never stored in the browser. Only the dose worksheet is saved locally on the device.
+- **PDF report:** includes patient name, CPR, the report date, every delivered fraction with its date, today's plan (marked as not yet delivered), the prescription estimate and signature lines.
+- **Privacy:** records stay in this browser on this device. Nothing is sent to a server.
 - **Install and offline use:** installable on Windows, Mac, iPhone and Android, and works without a connection after the first open.
+
+## Patient records: how storage works
+
+- Records are kept in the browser's storage for this app, on this device only. A different computer or browser has its own separate list.
+- To continue a patient on another computer, open the patient, select **Details → Export patient file**, then on the other computer select **Patients → Import patient file**. On import, a newer record replaces an older one with the same CPR.
+- **Back up all patients** saves one file with every record. Keep backups on the department drive. Clearing the browser's data, or uninstalling the app, deletes the records on that device.
+- Patient files contain names and CPR numbers. Store and share them according to the hospital's data protection policy.
 
 ## Radiobiology
 
@@ -82,7 +91,7 @@ On iPhone, **Export PDF report** opens the share sheet, where you can **Save to 
 ## Releasing a new version
 
 1. Upload the changed files.
-2. In `sw.js`, raise `CACHE_VERSION`, for example `gyn-eqd2-v1.0.3`, and upload it too.
+2. In `sw.js`, raise `CACHE_VERSION`, for example `gyn-eqd2-v1.1.1`, and upload it too.
 3. Installed copies update the next time they are opened online. Closing and reopening the app may be needed.
 
 ## Disclaimer
