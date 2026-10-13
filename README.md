@@ -2,13 +2,15 @@
 
 Cumulative EQD2 and BED calculator for gynaecological radiotherapy: external beam plus vaginal cylinder, intrauterine and interstitial HDR brachytherapy.
 
-**Version 1.0**
+**Version 1.0.2**
 
 - Designed by **Medical Physicist Ali Eid**
 - Supervised by **Dr. Zainab Alhaddad**
-- Tested and validated by **Medical Physicist Hamad Almannai** and the **Radiation Oncology team**
+- Tested by **Medical Physicist Hamad Almannai** and the **Radiation Oncology team**
 
 © 2026 Medical Physicist Ali Eid. All rights reserved.
+
+**Live app:** https://ali023273834.github.io/BOC_Brachy_EQD2/
 
 ---
 
@@ -22,7 +24,7 @@ Cumulative EQD2 and BED calculator for gynaecological radiotherapy: external bea
 - **Constraints:** Optimal / Acceptable for the target, Preferred / Maximum for organs. Presets follow EMBRACE II / GEC-ESTRO and can be edited.
 - **PDF report:** includes patient name, CPR and date, all tables, the de-escalation estimate and signature lines. Name and CPR are required to export.
 - **Privacy:** patient name and CPR are never stored in the browser. Only the dose worksheet is saved locally on the device.
-- **Offline use:** installable on iPhone, Android and desktop, and works without a connection after the first open.
+- **Install and offline use:** installable on Windows, Mac, iPhone and Android, and works without a connection after the first open.
 
 ## Radiobiology
 
@@ -37,35 +39,50 @@ The de-escalation estimate assumes the next plan uses the same applicator geomet
 
 ## Repository contents
 
+All files sit in the repository root, with no subfolders.
+
 | File | Purpose |
 |---|---|
 | `index.html` | The complete application |
 | `manifest.webmanifest` | App name, icons and colours for installation |
-| `sw.js` | Service worker for offline use |
-| `icons/` | App icons, including the iPhone Home Screen icon |
-| `vendor/` | jsPDF and jsPDF-AutoTable, bundled locally for PDF export |
+| `sw.js` | Service worker for offline use and installation |
+| `icon-192.png`, `icon-512.png`, `icon-maskable-512.png` | App icons for Windows, Mac and Android |
+| `apple-touch-icon.png` | iPhone Home Screen icon |
+| `jspdf.umd.min.js`, `jspdf.plugin.autotable.min.js` | PDF export libraries |
+| `THIRD-PARTY-NOTICES.txt` | MIT licences of the PDF libraries |
 | `.nojekyll` | Tells GitHub Pages to serve the files as they are |
 | `LICENSE` | Copyright and disclaimer |
 
-## Publish on GitHub Pages
+## Publish or update on GitHub Pages
 
-1. On GitHub, create a new **public** repository, for example `GYN-EQD2`.
-2. Choose **Add file → Upload files**. Drag in **all** files and folders from this package, keeping the `icons/` and `vendor/` folders as they are, then select **Commit changes**.
-3. Go to **Settings → Pages**. Under *Build and deployment*, set Source to **Deploy from a branch**, Branch to **main**, and folder to **/ (root)**, then select **Save**.
-4. Wait 1–2 minutes. The app will be live at `https://<your-username>.github.io/GYN-EQD2/`.
+1. Open the repository on GitHub and choose **Add file → Upload files**.
+2. Select **all 13 files** and drag them in together, then select **Commit changes**. Existing files with the same name are replaced.
+3. Check that the file list on GitHub shows all of the files above, including the four icons and the two `jspdf` files.
+4. First time only: go to **Settings → Pages** and set Source to **Deploy from a branch**, Branch to **main**, and folder to **/ (root)**.
+
+`.nojekyll` is hidden on Windows and Mac. If it doesn't upload, choose **Add file → Create new file**, name it `.nojekyll`, leave it empty, and commit.
+
+## Install on Windows (Edge or Chrome)
+
+1. Open the live app link.
+2. **Edge:** select the **App available** icon in the address bar, or go to **… → Apps → Install this site as an app**.
+3. **Chrome:** select the **Install** icon in the address bar, or go to **⋮ → Cast, save and share → Install page as app**.
+4. The app opens in its own window and appears in the Start menu.
+
+If the install option doesn't appear, press **Ctrl + F5** once to reload the latest version, then try again.
 
 ## Install on iPhone
 
-1. Open the GitHub Pages link in **Safari**.
+1. Open the live app link in **Safari**.
 2. Tap **Share → Add to Home Screen → Add**.
 3. Open it once while online. After that it also works offline.
 
-To export a report on iPhone, tap **Export PDF report**. The share sheet opens, where you can **Save to Files**, print, or send the report.
+On iPhone, **Export PDF report** opens the share sheet, where you can **Save to Files**, print or send the report.
 
-## Updating the app
+## Releasing a new version
 
-1. Upload the changed files to the repository.
-2. In `sw.js`, raise `CACHE_VERSION`, for example `gyn-eqd2-v1.0.1`, and upload that file too.
+1. Upload the changed files.
+2. In `sw.js`, raise `CACHE_VERSION`, for example `gyn-eqd2-v1.0.3`, and upload it too.
 3. Installed copies update the next time they are opened online. Closing and reopening the app may be needed.
 
 ## Disclaimer

@@ -4,7 +4,7 @@ GYN Brachy EQD2
 
 Designed by Medical Physicist Ali Eid
 Supervised by Dr. Zainab Alhaddad
-Tested and validated by Medical Physicist Hamad Almannai and the Radiation Oncology team
+Tested by Medical Physicist Hamad Almannai and the Radiation Oncology team
 
 This software and its source code are the property of the author. No part of
 it may be copied, modified, redistributed, sublicensed or used to create
@@ -20,5 +20,5 @@ the treating radiation oncologist and medical physicist. It is provided "as
 is", without warranty of any kind. The author accepts no liability for
 clinical decisions made using it.
 
-Third-party components in the vendor/ folder (jsPDF and jsPDF-AutoTable) are
-distributed under their own MIT licences; see vendor/THIRD-PARTY-NOTICES.txt.
+Third-party components (jsPDF and jsPDF-AutoTable) are
+distributed under their own MIT licences; see THIRD-PARTY-NOTICES.txt.

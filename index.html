@@ -12,8 +12,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="GYN EQD2">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
 :root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 body{margin:0;font:14px system-ui,-apple-system,sans-serif}
@@ -184,7 +184,7 @@ footer .formula{font-family:var(--font-mono);color:var(--fg)}
     <h1>GYN Brachy EQD2</h1>
     <p class="lede">Cumulative EQD2 and BED for external beam plus vaginal cylinder, intrauterine and interstitial brachytherapy, with the dose left for each organ and a prescription de-escalation estimate for the remaining fractions.</p>
     <div class="badges">
-      <span class="badge">Version 1.0</span>
+      <span class="badge">Version 1.0.2</span>
       <span class="badge">Designed by Medical Physicist Ali Eid</span>
       <span class="badge">Supervised by Dr. Zainab Alhaddad</span>
       <span class="badge">Tested by Medical Physicist Hamad Almannai and the Radiation Oncology team</span>
@@ -332,7 +332,7 @@ footer .formula{font-family:var(--font-mono);color:var(--fg)}
     <div class="credits">
       <span>Designed by <b>Medical Physicist Ali Eid</b></span>
       <span>Supervised by <b>Dr. Zainab Alhaddad</b></span>
-      <span>Tested and validated by <b>Medical Physicist Hamad Almannai</b> and the <b>Radiation Oncology team</b></span>
+      <span>Tested by <b>Medical Physicist Hamad Almannai</b> and the <b>Radiation Oncology team</b></span>
     </div>
     <span class="formula">BED = n·d·(1 + d / (α/β)) &nbsp;·&nbsp; EQD2 = BED / (1 + 2 / (α/β))</span>
     <span>Linear-quadratic model with complete repair between fractions; no correction for overall treatment time. EBRT phases are summed separately. The de-escalation estimate assumes the next plan uses the same applicator geometry so organ doses scale in proportion to the prescription; re-optimising the dwell pattern can do better than simple scaling.</span>
@@ -342,8 +342,8 @@ footer .formula{font-family:var(--font-mono);color:var(--fg)}
 </div>
 <div class="toast" id="toast" hidden></div>
 
-<script src="vendor/jspdf.umd.min.js"></script>
-<script src="vendor/jspdf.plugin.autotable.min.js"></script>
+<script src="jspdf.umd.min.js"></script>
+<script src="jspdf.plugin.autotable.min.js"></script>
 <script>
 const ORG=[
   {k:'ctv',t:true},
@@ -686,6 +686,14 @@ ptCpr.addEventListener('input',()=>{ptCpr.value=ptCpr.value.replace(/\D/g,'').sl
 ptDate.addEventListener('input',()=>{P.date=ptDate.value});
 
 /* ---------- PDF report ---------- */
+function loadScript(src){return new Promise(res=>{const s=document.createElement('script');s.src=src;s.onload=()=>res(true);s.onerror=()=>res(false);document.head.appendChild(s)})}
+async function ensurePdfLib(){
+  const hasAT=()=>window.jspdf&&window.jspdf.jsPDF&&typeof new window.jspdf.jsPDF().autoTable==='function';
+  if(hasAT())return true;
+  if(!window.jspdf)await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+  if(window.jspdf&&!hasAT())await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
+  return hasAT();
+}
 const pdfText=t=>String(t).replace(/α\/β/g,'a/b').replace(/≥/g,'>=').replace(/≤/g,'<=').replace(/—/g,'-').replace(/·/g,'-').replace(/×/g,'x').replace(/→/g,'->').replace(/[^\x20-\x7E]/g,'');
 const goalTxt=(o,v)=>num(v)?(o.t?'>= ':'< ')+v:'-';
 
@@ -761,7 +769,7 @@ function buildPdf(){
     doc.setPage(i);doc.setFontSize(7);doc.setTextColor(...grey);
     const f=[
       'EQD2 = BED / (1 + 2/(a/b)); BED = n.d.(1 + d/(a/b)). LQ model, no time correction. Estimate assumes proportional scaling with the same applicator geometry.',
-      'Designed by Medical Physicist Ali Eid - Supervised by Dr. Zainab Alhaddad - Tested and validated by Medical Physicist Hamad Almannai and the Radiation Oncology team.',
+      'Designed by Medical Physicist Ali Eid - Supervised by Dr. Zainab Alhaddad - Tested by Medical Physicist Hamad Almannai and the Radiation Oncology team.',
       `(c) 2026 Medical Physicist Ali Eid. All rights reserved.    Page ${i} of ${pages}`
     ];
     const fl=f.flatMap(t=>doc.splitTextToSize(t,W-2*mx));
@@ -777,7 +785,7 @@ document.getElementById('btn-pdf').addEventListener('click',async()=>{
   if(!/^\d{9}$/.test(P.cpr)){ptCpr.setAttribute('aria-invalid','true');bad=true}
   if(bad){ptNote.textContent='Enter the patient name and a 9-digit CPR before exporting the report.';ptNote.classList.add('err');ptName.scrollIntoView({behavior:'smooth',block:'center'});return}
   ptNote.textContent=PT_NOTE;ptNote.classList.remove('err');
-  if(!window.jspdf){toast('PDF tool did not load. Check the connection and try again.');return}
+  if(!(await ensurePdfLib())){toast('PDF tool could not load. Connect to the internet once and try again.');return}
   const doc=buildPdf();
   const fname=`GYN_EQD2_${P.cpr}_${(P.date||'').replace(/-/g,'')}.pdf`;
   let dl=null;
