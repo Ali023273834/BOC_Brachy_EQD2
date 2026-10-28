@@ -1,99 +1,49 @@
-# GYN Brachy EQD2
+# BOC Re-irradiation EQD2 app
 
-Cumulative EQD2 and BED calculator for gynaecological radiotherapy: external beam plus vaginal cylinder, intrauterine and interstitial HDR brachytherapy.
+Cumulative EQD2 calculator for head & neck and pelvic re-irradiation, with recovery after Course 1.
+Designed by Ali Eid. Under testing by the Radiation Oncology team.
 
-**Version 1.1.0**
+This folder is a complete installable web app. Once it is on GitHub Pages it opens from a web address,
+installs to the Home Screen on iPhone and Android, and then works without internet.
 
-- Designed by **Medical Physicist Ali Eid**
-- Supervised by **Dr. Zainab Alhaddad**
-- Tested by **Medical Physicist Hamad Almannai** and the **Radiation Oncology team**
-
-© 2026 Medical Physicist Ali Eid. All rights reserved.
-
-**Live app:** https://ali023273834.github.io/BOC_Brachy_EQD2/
-
----
-
-## Features
-
-- **Patient records:** each patient (name and CPR) keeps their external beam, every delivered brachytherapy fraction with its date, the constraints and the course settings. Records are saved automatically on the device, can be searched by name or CPR, and can be exported as a patient file or backed up all at once.
-- **Session workflow:** delivered fractions are locked. At each session you open the patient and enter only today's plan; results update as you type. When the fraction is treated, select **Mark as delivered**. **Reopen** corrects the last delivered fraction.
-- **External beam:** Phase 1 and optional Phase 2 boost. BED and EQD2 per structure, with a per-structure dose override (midline block, nodal boost).
-- **Brachytherapy:** vaginal cylinder, intrauterine, or interstitial; 1–6 fractions. You enter the physical dose per fraction for HR-CTV D90 and for bladder, rectum, sigmoid and bowel D2cc.
-- **Cumulative EQD2:** the running EBRT + brachy total after each fraction, with total BED and a status for each structure.
-- **Dose left for the remaining fractions:** the remaining EQD2 budget and the maximum physical dose per fraction for each organ, with today's plan checked against those values. For the target, the minimum dose per fraction still needed.
-- **Prescription adjustment estimate:** the highest prescription per fraction that keeps every organ within its constraint, the limiting organ, and the minimum prescription the target needs. It recommends lowering or raising the prescription and shows a projected final EQD2 at a test prescription. The change can apply to all remaining fractions or to the last fraction only. While today's plan is entered, organ ratios come from that plan; otherwise they are averaged over the delivered fractions.
-- **Constraints:** Optimal / Acceptable for the target, Preferred / Maximum for organs. Presets follow EMBRACE II / GEC-ESTRO and can be edited.
-- **PDF report:** includes patient name, CPR, the report date, every delivered fraction with its date, today's plan (marked as not yet delivered), the prescription estimate and signature lines.
-- **Privacy:** records stay in this browser on this device. Nothing is sent to a server.
-- **Install and offline use:** installable on Windows, Mac, iPhone and Android, and works without a connection after the first open.
-
-## Patient records: how storage works
-
-- Records are kept in the browser's storage for this app, on this device only. A different computer or browser has its own separate list.
-- To continue a patient on another computer, open the patient, select **Details → Export patient file**, then on the other computer select **Patients → Import patient file**. On import, a newer record replaces an older one with the same CPR.
-- **Back up all patients** saves one file with every record. Keep backups on the department drive. Clearing the browser's data, or uninstalling the app, deletes the records on that device.
-- Patient files contain names and CPR numbers. Store and share them according to the hospital's data protection policy.
-
-## Radiobiology
-
-```
-BED  = n · d · (1 + d / (α/β))
-EQD2 = BED / (1 + 2 / (α/β))
-```
-
-The model is linear-quadratic, assumes complete repair between fractions, and applies no correction for overall treatment time. Default α/β is 10 Gy for the target and 3 Gy for organs at risk.
-
-The de-escalation estimate assumes the next plan uses the same applicator geometry, so organ doses scale in proportion to the prescription. The organ-to-prescription ratio is averaged over the delivered fractions.
-
-## Repository contents
-
-All files sit in the repository root, with no subfolders.
+## Files
 
 | File | Purpose |
-|---|---|
-| `index.html` | The complete application |
-| `manifest.webmanifest` | App name, icons and colours for installation |
-| `sw.js` | Service worker for offline use and installation |
-| `icon-192.png`, `icon-512.png`, `icon-maskable-512.png` | App icons for Windows, Mac and Android |
-| `apple-touch-icon.png` | iPhone Home Screen icon |
-| `jspdf.umd.min.js`, `jspdf.plugin.autotable.min.js` | PDF export libraries |
-| `THIRD-PARTY-NOTICES.txt` | MIT licences of the PDF libraries |
-| `.nojekyll` | Tells GitHub Pages to serve the files as they are |
-| `LICENSE` | Copyright and disclaimer |
+| --- | --- |
+| index.html | The app |
+| manifest.webmanifest | App name, colours and icons used when installed |
+| sw.js | Offline cache |
+| icon-*.png, apple-touch-icon.png, favicon.png | App icons |
 
-## Publish or update on GitHub Pages
+## Put it online with GitHub Pages (about 15 minutes, free)
 
-1. Open the repository on GitHub and choose **Add file → Upload files**.
-2. Select **all 13 files** and drag them in together, then select **Commit changes**. Existing files with the same name are replaced.
-3. Check that the file list on GitHub shows all of the files above, including the four icons and the two `jspdf` files.
-4. First time only: go to **Settings → Pages** and set Source to **Deploy from a branch**, Branch to **main**, and folder to **/ (root)**.
+1. Go to github.com and create a free account (or sign in).
+2. Click **+** (top right), then **New repository**.
+   - Repository name: `rert-eqd2`
+   - Visibility: **Public** (free GitHub Pages needs a public repository; the app holds no patient data)
+   - Tick **Add a README file**, then click **Create repository**.
+3. In the new repository click **Add file**, then **Upload files**.
+4. Drag in ALL the files from this folder (not the folder itself), then click **Commit changes**.
+5. Click **Settings**, then **Pages** in the left menu.
+   - Source: **Deploy from a branch**
+   - Branch: **main**, folder **/ (root)**, then **Save**.
+6. Wait 1–2 minutes and refresh the Pages screen. It shows your address:
+   `https://YOUR-USERNAME.github.io/rert-eqd2/`
 
-`.nojekyll` is hidden on Windows and Mac. If it doesn't upload, choose **Add file → Create new file**, name it `.nojekyll`, leave it empty, and commit.
+## Install on a phone
 
-## Install on Windows (Edge or Chrome)
+- **iPhone:** open the address in **Safari**, tap **Share**, then **Add to Home Screen**, then **Add**.
+- **Android:** open the address in **Chrome**, tap **⋮**, then **Install app** (or **Add to Home screen**).
 
-1. Open the live app link.
-2. **Edge:** select the **App available** icon in the address bar, or go to **… → Apps → Install this site as an app**.
-3. **Chrome:** select the **Install** icon in the address bar, or go to **⋮ → Cast, save and share → Install page as app**.
-4. The app opens in its own window and appears in the Start menu.
+Open the app once while online. After that it works offline. Entries are saved on that phone only.
 
-If the install option doesn't appear, press **Ctrl + F5** once to reload the latest version, then try again.
+## Updating the app later
 
-## Install on iPhone
+1. Upload the changed files to the repository (same **Upload files** button; they replace the old ones).
+2. In `sw.js`, change `rert-eqd2-v1` to `rert-eqd2-v2` (then v3, and so on) and upload it too.
+   Phones pick up the new version the next time the app is opened online.
 
-1. Open the live app link in **Safari**.
-2. Tap **Share → Add to Home Screen → Add**.
-3. Open it once while online. After that it also works offline.
+## Clinical use
 
-On iPhone, **Export PDF report** opens the share sheet, where you can **Save to Files**, print or send the report.
-
-## Releasing a new version
-
-1. Upload the changed files.
-2. In `sw.js`, raise `CACHE_VERSION`, for example `gyn-eqd2-v1.1.1`, and upload it too.
-3. Installed copies update the next time they are opened online. Closing and reopening the app may be needed.
-
-## Disclaimer
-
-This application is a calculation aid. It does not replace the treatment planning system, independent dose verification, or the clinical judgement of the treating radiation oncologist and medical physicist. Confirm all constraints against your departmental protocol.
+Results support, and do not replace, clinical and physics review. Constraints and recovery assumptions
+are example values until set to BOC policy.
